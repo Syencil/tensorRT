@@ -1,9 +1,7 @@
 // Created by luozhiwang (luozw1994@outlook.com)
 // Date: 2020/3/16
-#include "yolo.h"
+#include "utils.h"
 
-#include <cuda.h>
-#include <cublas_v2.h>
 
 //static void HandleError(cudaError_t err, const char *file, int line ) {
 //    if (err != cudaSuccess) {
@@ -139,39 +137,32 @@ void _nms(int* keep_out, int* num_out, const float* boxes_host, int boxes_num,
     CHECK(cudaFree(mask_dev));
 }
 
-
-
-
-bool sort_score(std::vector<float> a, std::vector<float> b){
-    return a[4] > b[4];
-}
-
-std::vector<std::vector<float>> Yolo::nms(std::vector<std::vector<float>> bboxes, float threshold) const {
-    std::vector<std::vector<float>> bboxes_nms;
+std::vector<common::Bbox> nms(std::vector<common::Bbox> bboxes, float threshold) {
+    std::vector<common::Bbox> bboxes_nms;
     if (bboxes.empty()) {
         return bboxes_nms;
     }
     // 1.按照score排序
-    std::sort(bboxes.begin(), bboxes.end(), sort_score);
-
-    auto *bboxes_1d = new float[bboxes.size() * bboxes[0].size()];
+    std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
+    auto *bboxes_1d = new float[bboxes.size() * 5];
     for (int i = 0; i < bboxes.size(); ++i) {
-        for (int j = 0; j < bboxes[i].size(); ++j) {
-            bboxes_1d[i * bboxes[i].size() + j] = bboxes[i][j];
-        }
+        bboxes_1d[i * 5] = bboxes[i].xmin;
+        bboxes_1d[i * 5 + 1] = bboxes[i].ymin;
+        bboxes_1d[i * 5 + 2] = bboxes[i].xmax;
+        bboxes_1d[i * 5 + 3] = bboxes[i].ymax;
+        bboxes_1d[i * 5 + 4] = bboxes[i].score;
     }
-
 
     // 2.device malloc cpy
     int *keep_output = new int[bboxes.size()];
     int *num_out = new int;
-    _nms(keep_output, num_out, bboxes_1d, bboxes.size(), bboxes[0].size(), threshold, 0);
+    _nms(keep_output, num_out, bboxes_1d, bboxes.size(), 5, threshold, 0);
     for (int i = 0; i < *num_out; ++i) {
         bboxes_nms.push_back(bboxes[keep_output[i]]);
-
     }
     delete[]bboxes_1d;
     delete[]keep_output;
     delete num_out;
     return bboxes_nms;
 }
+

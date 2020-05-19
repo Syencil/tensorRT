@@ -52,6 +52,16 @@ public:
     //! \param bufferManager An instance of BufferManager. It holds the raw inference results.
     //! \return Return the inference time in ms. If failed, return 0.
     virtual float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager) const;
+
+public:
+    //! Init Inference Session
+    //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
+    //!                             1 ==========> init from onnxPath and save the session into SerializedPath if it doesnt exist.
+    //!                             2 ==========> init from onnxPath and force to save the session into SerializedPath.
+    //! \return true if no errors happened.
+    virtual bool initSession(int initOrder);
+
+
 };
 
 #endif //TENSORRT_7_TENSORRT_H

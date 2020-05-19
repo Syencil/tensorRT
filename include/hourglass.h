@@ -8,7 +8,7 @@
 
 class Hourglass : private TensorRT{
 private:
-    common::HourglassParams mHourglassParams;
+    common::KeypointParams keypointParams;
 private:
 
     //! If the image is padded, bboxes need to be restored.
@@ -17,7 +17,7 @@ private:
     //! \param oh Output image height
     //! \param ow Output image width
     //! \param [x, y, cid, prob]
-    void transformPoint(const int &h, const int &w, std::vector<std::vector<float>> &keypoints);
+    void transformPoint(const int &h, const int &w, std::vector<common::Keypoint> &keypoints);
 
 public:
 
@@ -25,7 +25,7 @@ public:
     //! \param inputParams
     //! \param trtParams
     //! \param hourglassParams
-    Hourglass(common::InputParams inputParams, common::TrtParams trtParams, common::HourglassParams hourglassParams);
+    Hourglass(common::InputParams inputParams, common::TrtParams trtParams, common::KeypointParams hourglassParams);
 
     //! Read images into buffer
     //! \param images
@@ -36,19 +36,19 @@ public:
     //! \param bufferManager It contains inference result
     //! \param postThres
     //! \return [x, y, cid, prob]
-    std::vector<std::vector<float>> postProcess(common::BufferManager &bufferManager, float postThres=-1) const;
+    std::vector<common::Keypoint> postProcess(common::BufferManager &bufferManager, float postThres=-1) const;
 
     //! Init Inference Session
-    //! \param initOrder 0 (default) ===> init from SerializedPath. If failed, init from onnxPath.
+    //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
     //!                             1 ==========> init from onnxPath and save the session into SerializedPath if it doesnt exist.
     //!                             2 ==========> init from onnxPath and force to save the session into SerializedPath.
     //! \return true if no errors happened.
-    bool initSession(int initOrder=0);
+    bool initSession(int initOrder) override ;
 
     //!
     //! \param image
     //! \param posThres Post process threshold.
     //! \return [x, y, cid, prob]
-    std::vector<std::vector<float>> predOneImage(const cv::Mat &image, float posThres=-1);
+    std::vector<common::Keypoint> predOneImage(const cv::Mat &image, float posThres=-1);
 };
 #endif //TENSORRT_HOURGLASS_H

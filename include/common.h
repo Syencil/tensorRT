@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 #include <cuda.h>
 
 #define CHECK(status)                                          \
@@ -20,7 +21,7 @@
     } while (0)
 
 namespace common{
-// <============== Params =============>
+    // <============== Params =============>
     struct InputParams {
         // General
         int ImgH;
@@ -50,16 +51,22 @@ namespace common{
         std::string SerializedPath;
     };
 
-    struct YoloParams{
-        // YOLO
+    struct Anchor{
+        float width;
+        float height;
+    };
+
+    struct DetectParams{
+        // Anchor based
         std::vector<int> Strides;
+        std::vector<common::Anchor> Anchors;
         int AnchorPerScale;
         int NumClass;
         float NMSThreshold;
         float PostThreshold;
     };
 
-    struct HourglassParams{
+    struct KeypointParams{
         // Hourglass
         int HeatMapH;
         int HeatMapW;
@@ -67,7 +74,29 @@ namespace common{
         float PostThreshold;
     };
 
+    struct ClassificationParams{
+        int NumClass;
+    };
 
+    // <============== Outputs =============>
+    struct Bbox{
+        float xmin;
+        float ymin;
+        float xmax;
+        float ymax;
+        float score;
+        int cid;
+    };
+    
+    struct Keypoint{
+        float x;
+        float y;
+        float score;
+        int cid;
+    };
+
+
+    // <============== Operator =============>
     struct InferDeleter{
         template <typename T>
         void operator()(T* obj) const

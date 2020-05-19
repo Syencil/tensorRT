@@ -1,15 +1,17 @@
 // Created by luozhiwang (luozw1994@outlook.com)
-// Date: 2020/3/14
+// Date: 2020/5/9
 
-#ifndef TENSORRT_YOLO_H
-#define TENSORRT_YOLO_H
+#ifndef TENSORRT_CENTERNET_H
+#define TENSORRT_CENTERNET_H
 
 #include "tensorrt.h"
 #include "utils.h"
+#include <algorithm>
 
-class Yolo : private TensorRT{
+
+class FCOS : private TensorRT{
 private:
-    common::DetectParams mYoloParams;
+    common::DetectParams mDetectParams;
 private:
 
     //! If the image is padded, bboxes need to be restored.
@@ -18,7 +20,7 @@ private:
     //! \param oh Output image height
     //! \param ow Output image width
     //! \param bboxes [xmin, ymin, xmax, ymax, cid, prob]
-    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes);
+    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<std::vector<float>> &bboxes);
 
 public:
 
@@ -26,19 +28,19 @@ public:
     //! \param inputParams
     //! \param trtParams
     //! \param yoloParams
-    Yolo(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams);
+    FCOS(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
     //! Read images into buffer
     //! \param images
     //! \return Float32 file data
     std::vector<float> preProcess(const std::vector<cv::Mat> &images) const;
 
-    //! Post Process for Yolov3
+    //! Post Process for Fcos
     //! \param bufferManager It contains inference result
     //! \param postThres
-    //! \param nms
+    //! \param nmsThres
     //! \return [xmin, ymin, xmax, ymax]
-    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1) const;
+    std::vector<std::vector<float>> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1) const;
 
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
@@ -52,7 +54,7 @@ public:
     //! \param posThres Post process threshold.
     //! \param nmsThres NMS Threshold
     //! \return [xmin, ymin, xmax, ymax]
-    std::vector<common::Bbox> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
+    std::vector<std::vector<float>> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
 };
 
-#endif //TENSORRT_YOLO_H
+#endif //TENSORRT_CENTERNET_H

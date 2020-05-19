@@ -1,15 +1,15 @@
 // Created by luozhiwang (luozw1994@outlook.com)
-// Date: 2020/3/14
+// Date: 2020/5/15
 
-#ifndef TENSORRT_YOLO_H
-#define TENSORRT_YOLO_H
+#ifndef TENSORRT_RETINANET_H
+#define TENSORRT_RETINANET_H
 
 #include "tensorrt.h"
 #include "utils.h"
 
-class Yolo : private TensorRT{
+class RetinaNet : private TensorRT{
 private:
-    common::DetectParams mYoloParams;
+    common::DetectParams mDetectParams;
 private:
 
     //! If the image is padded, bboxes need to be restored.
@@ -18,7 +18,7 @@ private:
     //! \param oh Output image height
     //! \param ow Output image width
     //! \param bboxes [xmin, ymin, xmax, ymax, cid, prob]
-    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes);
+    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes, bool is_padding=true);
 
 public:
 
@@ -26,7 +26,7 @@ public:
     //! \param inputParams
     //! \param trtParams
     //! \param yoloParams
-    Yolo(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams);
+    RetinaNet(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
     //! Read images into buffer
     //! \param images
@@ -52,7 +52,8 @@ public:
     //! \param posThres Post process threshold.
     //! \param nmsThres NMS Threshold
     //! \return [xmin, ymin, xmax, ymax]
-    std::vector<common::Bbox> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
+    std::vector<common::Bbox> predOneImage(const cv::Mat &image, float posThres=-1, float nmsThres=-1);
 };
 
-#endif //TENSORRT_YOLO_H
+
+#endif //TENSORRT_RETINANET_H

@@ -111,20 +111,50 @@ bool TensorRT::deseriazeEngine(const std::string &load_path) {
     return true;
 }
 
+
 float TensorRT::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager) const {
     assert(InputDatas.size()==mInputParams.InputTensorNames.size());
     for(int i=0; i<InputDatas.size(); ++i){
         std::memcpy((void*)bufferManager.getHostBuffer(mInputParams.InputTensorNames[i]), (void*)InputDatas[i].data(), InputDatas[i].size() * sizeof(float));
     }
-    bufferManager.copyInputToDevice();
+    bufferManager.copyInputToDeviceAsync();
     const auto t_start = std::chrono::high_resolution_clock::now();
-    if (!mContext->execute(mInputParams.BatchSize, bufferManager.getDeviceBindings().data())) {
+    if (!mContext->enqueue(mInputParams.BatchSize, bufferManager.getDeviceBindings().data(), nullptr, nullptr)) {
         gLogError << "Execute Failed!" << std::endl;
         return false;
     }
+    bufferManager.copyOutputToHostAsync();
     const auto t_end = std::chrono::high_resolution_clock::now();
     const float elapsed_time = std::chrono::duration<float, std::milli>(t_end - t_start).count();
     return elapsed_time;
+}
+
+bool TensorRT::initSession(int initOrder) {
+    if(initOrder==0){
+        if(!this->deseriazeEngine(mTrtParams.SerializedPath)){
+            if(!this->constructNetwork(mTrtParams.OnnxPath)){
+                gLogError << "Init Session Failed!" << std::endl;
+            }
+            std::ifstream f(mTrtParams.SerializedPath);
+            if(!f.good()){
+                if(!this->serializeEngine(mTrtParams.SerializedPath)){
+                    gLogError << "Init Session Failed!" << std::endl;
+                    return false;
+                }
+            }
+        }
+    } else if(initOrder==1){
+        if(!this->constructNetwork(mTrtParams.OnnxPath)){
+            gLogError << "Init Session Failed!" << std::endl;
+            return false;
+        }
+    } else if(initOrder==2){
+        if(!this->constructNetwork(mTrtParams.OnnxPath) || this->serializeEngine(mTrtParams.SerializedPath)){
+            gLogError << "Init Session Failed!" << std::endl;
+            return false;
+        }
+    }
+    return true;
 }
 
 

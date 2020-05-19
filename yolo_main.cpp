@@ -29,7 +29,7 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/yolo.serialized";
 }
 
-void initYoloParams(common::YoloParams &yoloParams){
+void initDetectParams(common::DetectParams &yoloParams){
     yoloParams.Strides = std::vector<int> {8, 16, 32};
     yoloParams.AnchorPerScale = 3;
     yoloParams.NumClass = 80;
@@ -40,17 +40,17 @@ void initYoloParams(common::YoloParams &yoloParams){
 int main(int args, char **argv){
     common::InputParams inputParams;
     common::TrtParams trtParams;
-    common::YoloParams yoloParams;
+    common::DetectParams yoloParams;
     initInputParams(inputParams);
     initTrtParams(trtParams);
-    initYoloParams(yoloParams);
+    initDetectParams(yoloParams);
 
     Yolo yolo(inputParams, trtParams, yoloParams);
     yolo.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
-    cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
-    std::vector<std::vector<float>> bboxes = yolo.predOneImage(image);
+
+    std::vector<common::Bbox> bboxes = yolo.predOneImage(image);
 
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
