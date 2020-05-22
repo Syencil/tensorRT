@@ -66,6 +66,7 @@ set(HOURGLASS ${TRT} ${INT8} source/hourglass.cpp)
 set(RESNET ${TRT} ${INT8} source/resnet.cpp)
 set(FCOS ${TRT} ${INT8} source/fcos.cpp)
 set(RETINANET ${TRT} ${INT8} source/retinanet.cpp)
+set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
 
 set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
 set(TRT_LIB libnvinfer.so libnvonnxparser.so cudart.so)
@@ -82,8 +83,11 @@ target_link_libraries(resnet resnettrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(fcos fcos_main.cpp)
 target_link_libraries(fcos fcostrt.so ${TRT_LIB} ${CV_LIB})
 
-cuda_add_executable(retinanet retinanet_main.cpp ${RETINANET})
-target_link_libraries(retinanet  ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(retinanet retinanet_main.cpp)
+target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
+
+cuda_add_executable(retinaface retinaface_main.cpp ${RETINAFACE})
+target_link_libraries(retinaface ${TRT_LIB} ${CV_LIB})
 
 #########################3#####################
 cuda_add_library(yolotrt SHARED ${YOLO})

@@ -46,12 +46,12 @@ bool Hourglass::initSession(int initOrder) {
    return TensorRT::initSession(initOrder);
 }
 
-std::vector<common::Keypoint> Hourglass::predOneImage(const cv::Mat &image, float posThres) {
+std::vector<common::Keypoint> Hourglass::predOneImage(const cv::Mat &image, float postThres) {
     assert(mInputParams.BatchSize==1);
     common::BufferManager bufferManager(mCudaEngine, 1);
     float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
     gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
-    std::vector<common::Keypoint> keypoints = postProcess(bufferManager, posThres);
+    std::vector<common::Keypoint> keypoints = postProcess(bufferManager, postThres);
     this->transformPoint(image.rows, image.cols, keypoints);
     return keypoints;
 }

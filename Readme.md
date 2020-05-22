@@ -7,6 +7,7 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 ## What has it achieved?
 * FP32，FP16，INT8量化
 * serialize，deserialize
+* RetinaFace
 * ResNet
 * Yolov3
 * RetinaNet
@@ -44,8 +45,16 @@ cd bin
 
 ## Attention
 * Onnx必须指定为输入全尺寸，再实际中trt也不存在理想上的动态输入，所以必须在freeze阶段指明输入大小。<br>
-* 所有大图输入均默认为（1, 512,512, 3）<br>
 * 构建新项目时，需要继承TensorRT类，只需要实现preProcess，postProcess即可。上层封装为initSession和predOneImage两个方法，方便调用。
+
+## RetinaFace
+### 简介
+* 位置：retinaface_main.cpp
+* Python训练原版代码git：[https://github.com/biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface)
+### 注意事项
+* 执行convert_to_onnx.py的时候需要更改opset_version=11，verbose=True
+* 因为项目不需要关键点，所以把landmark的decode部分去掉了
+* 直接使用阈值0.6（原版0.02 + topK）过滤然后接NMS
 
 ## Yolov3
 ### 简介

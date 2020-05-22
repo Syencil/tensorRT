@@ -49,7 +49,13 @@ std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager
             }
         }
     }
-    return nms(bboxes, nmsThres);
+    std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
+    std::vector<int> nms_idx = nms(bboxes, nmsThres);
+    std::vector<common::Bbox> bboxes_nms(nms_idx.size());
+    for (int i=0; i<nms_idx.size(); ++i){
+        bboxes_nms[i] = bboxes[nms_idx[i]];
+    }
+    return bboxes_nms;
 }
 
 bool Yolo::initSession(int initOrder) {
@@ -70,20 +76,28 @@ std::vector<common::Bbox> Yolo::predOneImage(const cv::Mat &image, float postThr
 }
 
 void Yolo::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow,
-                        std::vector<common::Bbox> &bboxes) {
-    float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw), static_cast<float>(oh) / static_cast<float>(ih));
-    int nh = static_cast<int>(scale * static_cast<float>(ih));
-    int nw = static_cast<int>(scale * static_cast<float>(iw));
-    int dh = (oh - nh) / 2;
-    int dw = (ow - nw) / 2;
-    for (auto &bbox : bboxes){
-        bbox.xmin = (bbox.xmin - dw) / scale;
-        bbox.ymin = (bbox.ymin - dh) / scale;
-        bbox.xmax = (bbox.xmax - dw) / scale;
-        bbox.ymax = (bbox.ymax - dh) / scale;
+                        std::vector<common::Bbox> &bboxes, bool is_padding) {
+    if(is_padding){
+        float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw), static_cast<float>(oh) / static_cast<float>(ih));
+        int nh = static_cast<int>(scale * static_cast<float>(ih));
+        int nw = static_cast<int>(scale * static_cast<float>(iw));
+        int dh = (oh - nh) / 2;
+        int dw = (ow - nw) / 2;
+        for (auto &bbox : bboxes){
+            bbox.xmin = (bbox.xmin - dw) / scale;
+            bbox.ymin = (bbox.ymin - dh) / scale;
+            bbox.xmax = (bbox.xmax - dw) / scale;
+            bbox.ymax = (bbox.ymax - dh) / scale;
+        }
+    }else{
+        for (auto &bbox : bboxes){
+            bbox.xmin = bbox.xmin * iw / ow;
+            bbox.ymin = bbox.ymin * ih / oh;
+            bbox.xmax = bbox.xmax * iw / ow;
+            bbox.ymax = bbox.ymax * ih / oh;
+        }
     }
 }
-
 
 
 

@@ -20,14 +20,14 @@ private:
     //! \param oh Output image height
     //! \param ow Output image width
     //! \param bboxes [xmin, ymin, xmax, ymax, cid, prob]
-    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<std::vector<float>> &bboxes);
+    void transformBbox(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes);
 
 public:
 
     //! Initializing
     //! \param inputParams
     //! \param trtParams
-    //! \param yoloParams
+    //! \param detectParams
     FCOS(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
     //! Read images into buffer
@@ -39,8 +39,8 @@ public:
     //! \param bufferManager It contains inference result
     //! \param postThres
     //! \param nmsThres
-    //! \return [xmin, ymin, xmax, ymax]
-    std::vector<std::vector<float>> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1) const;
+    //! \return common::Bbox{xmin, ymin, xmax, ymax, score, cid}
+    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1) const;
 
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
@@ -53,8 +53,8 @@ public:
     //! \param image
     //! \param posThres Post process threshold.
     //! \param nmsThres NMS Threshold
-    //! \return [xmin, ymin, xmax, ymax]
-    std::vector<std::vector<float>> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
+    //! \return common::Bbox{xmin, ymin, xmax, ymax, score, cid}
+    std::vector<common::Bbox> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
 };
 
 #endif //TENSORRT_CENTERNET_H

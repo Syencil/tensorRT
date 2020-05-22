@@ -17,8 +17,8 @@ private:
     //! \param iw Input image width
     //! \param oh Output image height
     //! \param ow Output image width
-    //! \param bboxes [xmin, ymin, xmax, ymax, cid, prob]
-    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes);
+    //! \param bboxes common::Bbox{xmin, ymin, xmax, ymax, cid, prob}
+    void transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes, bool is_padding=true);
 
 public:
 

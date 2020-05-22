@@ -94,16 +94,20 @@ RetinaNet::postProcess(common::BufferManager &bufferManager, float postThres, fl
                             bbox.ymax = clip(ymax, 0.f, static_cast<float>(mInputParams.ImgH));;
                             bbox.score = score;
                             bbox.cid = cid;
-                            bboxes_t.emplace_back(bbox);
+                            bboxes_total.emplace_back(bbox);
                         }
                     }
                 }
             }
         }
-        std::sort(bboxes_t.begin(), bboxes_t.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score>b2.score;});
-        bboxes_total.insert(bboxes_total.end(), bboxes_t.begin(), bboxes_t.begin()+std::min(100UL, bboxes_t.size()));
     }
-    return nms(bboxes_total, nmsThres);
+    std::sort(bboxes_total.begin(), bboxes_total.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
+    std::vector<int> nms_idx = nms(bboxes_total, nmsThres);
+    std::vector<common::Bbox> bboxes_nms(nms_idx.size());
+    for (int i=0; i<nms_idx.size(); ++i){
+        bboxes_nms[i] = bboxes_total[nms_idx[i]];
+    }
+    return bboxes_nms;
 }
 
 bool RetinaNet::initSession(int initOrder) {

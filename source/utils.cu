@@ -137,13 +137,11 @@ void _nms(int* keep_out, int* num_out, const float* boxes_host, int boxes_num,
     CHECK(cudaFree(mask_dev));
 }
 
-std::vector<common::Bbox> nms(std::vector<common::Bbox> bboxes, float threshold) {
-    std::vector<common::Bbox> bboxes_nms;
+std::vector<int> nms(std::vector<common::Bbox> bboxes, float threshold) {
     if (bboxes.empty()) {
-        return bboxes_nms;
+        return std::vector<int>();
     }
-    // 1.按照score排序
-    std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
+    // 1.之前需要按照score排序
     auto *bboxes_1d = new float[bboxes.size() * 5];
     for (int i = 0; i < bboxes.size(); ++i) {
         bboxes_1d[i * 5] = bboxes[i].xmin;
@@ -157,12 +155,11 @@ std::vector<common::Bbox> nms(std::vector<common::Bbox> bboxes, float threshold)
     int *keep_output = new int[bboxes.size()];
     int *num_out = new int;
     _nms(keep_output, num_out, bboxes_1d, bboxes.size(), 5, threshold, 0);
-    for (int i = 0; i < *num_out; ++i) {
-        bboxes_nms.push_back(bboxes[keep_output[i]]);
-    }
+    std::vector<int> keep_idx;
+    keep_idx.insert(keep_idx.begin(), keep_output, keep_output + *num_out);
     delete[]bboxes_1d;
     delete[]keep_output;
     delete num_out;
-    return bboxes_nms;
+    return keep_idx;
 }
 

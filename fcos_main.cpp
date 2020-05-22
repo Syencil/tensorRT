@@ -52,7 +52,7 @@ int main(int args, char **argv){
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
 
 
-    std::vector<std::vector<float>> bboxes = fcos.predOneImage(image);
+    std::vector<common::Bbox> bboxes = fcos.predOneImage(image);
 
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);

@@ -25,8 +25,8 @@ std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vect
 //! None-Maximum-Suppression
 //! \param features [xmin, ymin, xmax, ymax, cid, prob]
 //! \param thres
-//! \return [xmin, ymin, xmax, ymax, cid, prob]
-std::vector<common::Bbox> nms(std::vector<common::Bbox>, float threshold);
+//! \return keep index
+std::vector<int> nms(std::vector<common::Bbox>, float threshold);
 
 
 // ===============Rendering =============>
