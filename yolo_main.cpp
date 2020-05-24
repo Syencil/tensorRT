@@ -11,15 +11,15 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"Placeholder/inputs_x:0"};
     inputParams.OutputTensorNames = std::vector<std::string>{"pred_sbbox/decode:0", "pred_mbbox/decode:0", "pred_lbbox/decode:0"};
-    inputParams.pFunction = [](unsigned char x){return static_cast<float>(x) /255;};
+    inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /255;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){
     trtParams.ExtraWorkSpace = 0;
-    trtParams.FP32 = false;
+    trtParams.FP32 = true;
     trtParams.FP16 = false;
     trtParams.Int32 = false;
-    trtParams.Int8 = true;
+    trtParams.Int8 = false;
     trtParams.MaxBatch = 100;
     trtParams.MinTimingIteration = 1;
     trtParams.AvgTimingIteration = 2;
@@ -50,8 +50,13 @@ int main(int args, char **argv){
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
 
+    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<common::Bbox> bboxes = yolo.predOneImage(image);
-
+    const auto end_t = std::chrono::high_resolution_clock::now();
+    std::cout
+            << "Wall clock time passed: "
+            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+            <<std::endl;
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
     return 0;

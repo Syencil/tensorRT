@@ -34,7 +34,7 @@ private:
     float* mDevice_ptr;
     float* mHost_ptr;
     // 预处理函数
-    float (*pFunction)(unsigned char);
+    float (*pFunction)(unsigned char&);
 private:
     bool update();
     bool readIntoBuffer();

@@ -4,14 +4,14 @@
 #include "utils.h"
 
 // ==============Pre Process=============>
-std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(unsigned char), bool HWC){
-    // image_path ===> BGR/HWC ===> RGB/HWC
-    std::vector<float> fileData;
-    for(const auto &image : images){
-        cv::Mat cvt_image = image.clone();
-        cv::cvtColor(cvt_image, cvt_image, cv::COLOR_BGR2RGB);
+std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(unsigned char&), bool HWC){
+    // image_path ===> cv::Mat ===> resize(padding) ===> CHW/HWC (BRG=>RGB)
+    // 测试发现RGB转BGR的cv::cvtColor 和 HWC 转 CHW非常耗时，故将其合并为一次操作
+    const int image_length = image_h*image_w*3;
+    std::vector<float> fileData(images.size()*image_length);
+    for(int img_count=0; img_count<images.size(); ++img_count){
+        cv::Mat image = images[img_count].clone();
         cv::Mat prodessed_image(image_h, image_w, CV_8UC3);
-
         if(is_padding){
             int ih = image.rows;
             int iw = image.cols;
@@ -20,28 +20,38 @@ std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int
             int nw = static_cast<int>(scale * static_cast<float>(iw));
             int dh = (image_h - nh) / 2;
             int dw = (image_w - nw) / 2;
+
             cv::Mat resized_image(nh, nw, CV_8UC3);
-            cv::resize(cvt_image, resized_image, cv::Size(nw, nh));
+            cv::resize(image, resized_image, cv::Size(nw, nh));
             cv::copyMakeBorder(resized_image, prodessed_image, dh, image_h-nh-dh, dw, image_w-nw-dw, cv::BORDER_CONSTANT, cv::Scalar(128,128,128));
         }else{
             cv::Mat resized_image(image_h, image_w, CV_8UC3);
-            cv::resize(cvt_image, prodessed_image, cv::Size(image_w, image_h));
+            cv::resize(image, prodessed_image, cv::Size(image_w, image_h));
         }
         std::vector<unsigned char> file_data = prodessed_image.reshape(1, 1);
         if(HWC){
-            // HWC
-            for (int i=0;i<file_data.size();++i){
-                fileData.push_back((*pFun)(file_data[i]));
+            // HWC and BRG=>RGB
+            for (int h=0; h<image_h; ++h){
+                for (int w=0; w<image_w; ++w){
+                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 0] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 2]);
+                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 1] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 1]);
+                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 2] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 0]);
+                }
             }
         }else{
-            // CHW
-            int c, h, w, idx;
-            for (int i=0;i<file_data.size();++i){
-                w = i % image_w;
-                h = i / image_w % image_h;
-                c = i / image_w / image_h;
-                idx = h * image_w * 3 + w * 3 + c;
-                fileData.push_back((*pFun)(file_data[idx]));
+            // CHW and BRG=>RGB
+            for (int h=0; h<image_h; ++h){
+                for (int w=0; w<image_w; ++w) {
+                    fileData[img_count * image_length + 0 * image_h * image_w + h * image_w + w] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 2]);
+                    fileData[img_count * image_length + 1 * image_h * image_w + h * image_w + w] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 1]);
+                    fileData[img_count * image_length + 2 * image_h * image_w + h * image_w + w] =
+                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 0]);
+                }
             }
         }
     }

@@ -16,7 +16,7 @@
 #include <string>
 
 // ==============Pre Process=============>
-std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding=true, float(*pFun)(unsigned char)=nullptr, bool HWC=true);
+std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding=true, float(*pFun)(unsigned char&)=nullptr, bool HWC=true);
 
 std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vector<std::string> &directory, const std::vector<std::string> &suffix=std::vector<std::string>{".jpg", ".png"});
 

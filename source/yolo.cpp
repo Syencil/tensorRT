@@ -30,10 +30,6 @@ std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager
         for(int i=0; i<length*(5+mYoloParams.NumClass); i+=(5+mYoloParams.NumClass)){
             prob=-1;
             cid=-1;
-            bbox.xmin = clip<float>(origin_output[i] - origin_output[i+2] * 0.5, 0, static_cast<float>(mInputParams.ImgW-1));
-            bbox.ymin = clip<float>(origin_output[i+1] - origin_output[i+3] * 0.5, 0, static_cast<float>(mInputParams.ImgH-1));
-            bbox.xmax = clip<float>(origin_output[i] + origin_output[i+2] * 0.5, 0, static_cast<float>(mInputParams.ImgW-1));
-            bbox.ymax = clip<float>(origin_output[i+1] + origin_output[i+3] * 0.5, 0, static_cast<float>(mInputParams.ImgH-1));
             conf = origin_output[i+4];
             for (int c=i+5; c<i+5+mYoloParams.NumClass; ++c){
                 if (origin_output[c] > prob){
@@ -43,6 +39,10 @@ std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager
             }
             score = conf * prob;
             if (score>=postThres){
+                bbox.xmin = clip<float>(origin_output[i] - origin_output[i+2] * 0.5, 0, static_cast<float>(mInputParams.ImgW-1));
+                bbox.ymin = clip<float>(origin_output[i+1] - origin_output[i+3] * 0.5, 0, static_cast<float>(mInputParams.ImgH-1));
+                bbox.xmax = clip<float>(origin_output[i] + origin_output[i+2] * 0.5, 0, static_cast<float>(mInputParams.ImgW-1));
+                bbox.ymax = clip<float>(origin_output[i+1] + origin_output[i+3] * 0.5, 0, static_cast<float>(mInputParams.ImgH-1));
                 bbox.score = score;
                 bbox.cid = cid;
                 bboxes.emplace_back(bbox);

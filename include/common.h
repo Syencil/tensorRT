@@ -33,7 +33,7 @@ namespace common{
         std::vector<std::string> InputTensorNames;
         std::vector<std::string> OutputTensorNames;
         // Image pre-process function
-        float(*pFunction)(unsigned char);
+        float(*pFunction)(unsigned char&);
     };
 
     struct TrtParams{

@@ -11,7 +11,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
     inputParams.OutputTensorNames = std::vector<std::string>{"815", "816", "841", "842", "867", "868", "893", "894", "919", "920"};
-    inputParams.pFunction = [](unsigned char x){return (static_cast<float>(x) -118) / 58;};
+    inputParams.pFunction = [](unsigned char &x){return (static_cast<float>(x) -118) / 58;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){
@@ -81,7 +81,14 @@ int main(int args, char **argv){
     retinaNet.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
+
+    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<common::Bbox> bboxes = retinaNet.predOneImage(image);
+    const auto end_t = std::chrono::high_resolution_clock::now();
+    std::cout
+            << "Wall clock time passed: "
+            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+            <<std::endl;
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
     return 0;

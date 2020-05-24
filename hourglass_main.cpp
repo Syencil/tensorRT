@@ -11,7 +11,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"Placeholder/inputs_x:0"};
     inputParams.OutputTensorNames = std::vector<std::string>{"Keypoints/keypoint_1/conv/Sigmoid:0"};
-    inputParams.pFunction = [](unsigned char x){return static_cast<float>(x) /128-1;};
+    inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /128-1;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){
@@ -48,7 +48,14 @@ int main(int args, char **argv){
     hourglass.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_3.jpg");
+
+    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<common::Keypoint> keypoints = hourglass.predOneImage(image);
+    const auto end_t = std::chrono::high_resolution_clock::now();
+    std::cout
+            << "Wall clock time passed: "
+            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+            <<std::endl;
 
     image = renderKeypoint(image, keypoints);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);

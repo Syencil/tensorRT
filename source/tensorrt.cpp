@@ -112,14 +112,14 @@ bool TensorRT::deseriazeEngine(const std::string &load_path) {
 }
 
 
-float TensorRT::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager) const {
+float TensorRT::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager, cudaStream_t stream) const {
     assert(InputDatas.size()==mInputParams.InputTensorNames.size());
     for(int i=0; i<InputDatas.size(); ++i){
         std::memcpy((void*)bufferManager.getHostBuffer(mInputParams.InputTensorNames[i]), (void*)InputDatas[i].data(), InputDatas[i].size() * sizeof(float));
     }
-    bufferManager.copyInputToDeviceAsync();
     const auto t_start = std::chrono::high_resolution_clock::now();
-    if (!mContext->enqueue(mInputParams.BatchSize, bufferManager.getDeviceBindings().data(), nullptr, nullptr)) {
+    bufferManager.copyInputToDeviceAsync();
+    if (!mContext->enqueue(mInputParams.BatchSize, bufferManager.getDeviceBindings().data(), stream, nullptr)) {
         gLogError << "Execute Failed!" << std::endl;
         return false;
     }

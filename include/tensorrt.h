@@ -47,11 +47,12 @@ public:
     //! \return Return true if no errors happened.
     virtual bool deseriazeEngine(const std::string &load_path);
 
-    //! (Synchronously) Execute the inference on a batch.
+    //! (ASynchronously) Execute the inference on a batch.
     //! \param InputDatas Float arrays which must corresponded with InputTensorNames.
     //! \param bufferManager An instance of BufferManager. It holds the raw inference results.
+    //! \param cudaStream_t Execute in stream
     //! \return Return the inference time in ms. If failed, return 0.
-    virtual float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager) const;
+    virtual float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream= nullptr) const;
 
 public:
     //! Init Inference Session

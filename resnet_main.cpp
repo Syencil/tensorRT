@@ -11,7 +11,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"0"};
     inputParams.OutputTensorNames = std::vector<std::string>{"466"};
-    inputParams.pFunction = [](unsigned char x){return static_cast<float>(x) /255;};
+    inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /255;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){
@@ -58,7 +58,15 @@ int main(int args, char **argv){
     resnet.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/blue.jpg");
+
+    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<float> prob = resnet.predOneImage(image);
+    const auto end_t = std::chrono::high_resolution_clock::now();
+    std::cout
+            << "Wall clock time passed: "
+            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+            <<std::endl;
+
     getMaxProb(prob);
 
     return 0;
