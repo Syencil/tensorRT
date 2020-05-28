@@ -86,8 +86,8 @@ target_link_libraries(fcos fcostrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(retinanet retinanet_main.cpp)
 target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
 
-cuda_add_executable(retinaface retinaface_main.cpp ${RETINAFACE})
-target_link_libraries(retinaface ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(retinaface retinaface_main.cpp)
+target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
 
 #########################3#####################
 cuda_add_library(yolotrt SHARED ${YOLO})
@@ -95,4 +95,5 @@ cuda_add_library(hourglasstrt SHARED ${HOURGLASS})
 cuda_add_library(resnettrt SHARED ${RESNET})
 cuda_add_library(fcostrt SHARED ${FCOS})
 cuda_add_library(retinanettrt SHARED ${RETINANET})
+cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
 

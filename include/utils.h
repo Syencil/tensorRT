@@ -8,6 +8,7 @@
 
 #include <NvInfer.h>
 #include <dirent.h>
+#include <thread>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -16,7 +17,7 @@
 #include <string>
 
 // ==============Pre Process=============>
-std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding=true, float(*pFun)(unsigned char&)=nullptr, bool HWC=true);
+std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding=true, float(*pFun)(unsigned char&)=nullptr, bool HWC=true, int work=1);
 
 std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vector<std::string> &directory, const std::vector<std::string> &suffix=std::vector<std::string>{".jpg", ".png"});
 
@@ -37,7 +38,6 @@ cv::Mat renderKeypoint(cv::Mat image, const std::vector<common::Keypoint> &keypo
 
 
 // ===========Template Operation ==========>
-
 template<class ForwardIterator>
 inline size_t argmin(ForwardIterator first, ForwardIterator last)
 {

@@ -4,12 +4,37 @@
 #ifndef TENSORRT_RETINAFACE_H
 #define TENSORRT_RETINAFACE_H
 
+#include <thread>
+#include <mutex>
+
 #import "tensorrt.h"
 
 class Retinaface : private TensorRT{
 private:
     common::DetectParams mDetectParams;
+    std::mutex mMutex;
+
 private:
+
+    //! private function for postProcess
+    //! \param start_h
+    //! \param length
+    //! \param width
+    //! \param s
+    //! \param pos
+    //! \param loc
+    //! \param conf
+    //! \param land
+    //! \param postThres
+    //! \param bboxes
+    void postProcessParall(unsigned long start_h, unsigned long length, unsigned long width,
+                           unsigned long s, unsigned long pos, const float *loc, const float *conf, const float *land, float postThres,
+                           std::vector<common::Bbox> *bboxes);
+
+    //! Ensure thread safety
+    //! \param bboxes
+    //! \param bbox
+    void safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox);
 
     //! If the image is padded, bboxes need to be restored.
     //! \param ih Input image height
@@ -37,7 +62,7 @@ public:
     //! \param postThres
     //! \param nms
     //! \return
-    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres) const;
+    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres);
 
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
@@ -52,6 +77,8 @@ public:
     //! \param nmsThres NMS Threshold
     //! \return
     std::vector<common::Bbox> predOneImage(const cv::Mat &image, float posThres=-1, float nmsThres=-1);
+
+
 };
 
 #endif //TENSORRT_RETINAFACE_H

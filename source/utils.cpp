@@ -3,13 +3,43 @@
 
 #include "utils.h"
 
+void idxTransformParall(std::vector<unsigned char> *in_file, std::vector<float> *out_file,
+                        unsigned long start_h, unsigned long length, unsigned long image_h, unsigned long image_w,
+                        unsigned long start, float (*pFun)(unsigned char&), bool HWC){
+    if(HWC){
+        // HWC and BRG=>RGB
+        for(unsigned long h=start_h; h<start_h+length; ++h){
+            for(unsigned long w=0; w<image_w; ++w){
+                (*out_file)[start + h * image_w * 3 + w * 3 + 0] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 2]);
+                (*out_file)[start + h * image_w * 3 + w * 3 + 1] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 1]);
+                (*out_file)[start + h * image_w * 3 + w * 3 + 2] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 0]);
+            }
+        }
+    }else{
+        // CHW and BRG=>RGB
+        for(unsigned long h=start_h; h<start_h+length; ++h){
+            for(unsigned long w=0; w<image_w; ++w){
+                (*out_file)[start + 0 * image_h * image_w + h * image_w + w] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 2]);
+                (*out_file)[start + 1 * image_h * image_w + h * image_w + w] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 1]);
+                (*out_file)[start + 2 * image_h * image_w + h * image_w + w] =
+                        (*pFun)((*in_file)[h * image_w * 3 + w * 3 + 0]);
+            }
+        }
+    }
+}
+
 // ==============Pre Process=============>
-std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(unsigned char&), bool HWC){
+std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(unsigned char&), bool HWC, int worker){
     // image_path ===> cv::Mat ===> resize(padding) ===> CHW/HWC (BRG=>RGB)
     // 测试发现RGB转BGR的cv::cvtColor 和 HWC 转 CHW非常耗时，故将其合并为一次操作
-    const int image_length = image_h*image_w*3;
+    const unsigned long image_length = image_h*image_w*3;
     std::vector<float> fileData(images.size()*image_length);
-    for(int img_count=0; img_count<images.size(); ++img_count){
+    for(unsigned long img_count=0; img_count<images.size(); ++img_count){
         cv::Mat image = images[img_count].clone();
         cv::Mat prodessed_image(image_h, image_w, CV_8UC3);
         if(is_padding){
@@ -29,30 +59,28 @@ std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int
             cv::resize(image, prodessed_image, cv::Size(image_w, image_h));
         }
         std::vector<unsigned char> file_data = prodessed_image.reshape(1, 1);
-        if(HWC){
-            // HWC and BRG=>RGB
-            for (int h=0; h<image_h; ++h){
-                for (int w=0; w<image_w; ++w){
-                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 0] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 2]);
-                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 1] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 1]);
-                    fileData[img_count * image_length + h * image_w * 3 + w * 3 + 2] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 0]);
-                }
-            }
+        // 并发
+        unsigned long min_threads;
+        if (worker<0){
+            const unsigned long min_length = 64;
+            min_threads = (image_h - 1) / min_length + 1;
+        }else if(worker==0){
+            min_threads = 1;
         }else{
-            // CHW and BRG=>RGB
-            for (int h=0; h<image_h; ++h){
-                for (int w=0; w<image_w; ++w) {
-                    fileData[img_count * image_length + 0 * image_h * image_w + h * image_w + w] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 2]);
-                    fileData[img_count * image_length + 1 * image_h * image_w + h * image_w + w] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 1]);
-                    fileData[img_count * image_length + 2 * image_h * image_w + h * image_w + w] =
-                            (*pFun)(file_data[h * image_w * 3 + w * 3 + 0]);
-                }
-            }
+            min_threads = worker;
+        }
+        const unsigned long cpu_max_threads = std::thread::hardware_concurrency();
+        const unsigned long num_threads = std::min(cpu_max_threads !=0 ? cpu_max_threads : 1, min_threads);
+        const unsigned long block_size = image_h / num_threads;
+        std::vector<std::thread> threads(num_threads-1);
+        unsigned long block_start = 0;
+        for (auto &t : threads){
+            t = std::thread(idxTransformParall, &file_data, &fileData, block_start, block_size, image_h, image_w, img_count * image_length, pFun, HWC);
+            block_start += block_size;
+        }
+        idxTransformParall(&file_data, &fileData, block_start, image_h - block_start, image_h, image_w, img_count * image_length, pFun, HWC);
+        for(auto &t : threads){
+            t.join();
         }
     }
     return fileData;

@@ -5,6 +5,7 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 之前trt-6的项目存在版本兼容性问题，现已舍弃。
 
 ## What has it achieved?
+* 支持多线程进行预处理和后处理
 * FP32，FP16，INT8量化
 * serialize，deserialize
 * RetinaFace
@@ -55,6 +56,7 @@ cd bin
 * 执行convert_to_onnx.py的时候需要更改opset_version=11，verbose=True
 * 因为项目不需要关键点，所以把landmark的decode部分去掉了
 * 直接使用阈值0.6（原版0.02 + topK）过滤然后接NMS
+* 支持多线程操作
 
 ## Yolov3
 ### 简介
@@ -65,6 +67,7 @@ cd bin
 * 训练部分同原版git相同，主要在freeze的时候使用了固定尺寸输入，并修改了python中decode的实现方法。
 * NMS代码采用faster-rcnn中的NMS。改动部分在于支持多维度bbox输入，并且shared memory改为动态数组。
 * INT8部分50张图差不多就够了
+* 支持多线程操作
 
 ## RetinaNet
 ### 简介
@@ -92,3 +95,9 @@ cd bin
 * 位置：hourglass_main.cpp（Hourglass）
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
+## 更新日志
+### 2020.05.28
+今天开始决定把每次更新的内容记录一下。<br>
+1. 支持多线程（部署在yolo和retinaface上）
+2. 把BRG转RGB和HWC转CHW放在一起操作
+3. worker=4的时候前后处理总用时可以从30ms压缩到15ms左右

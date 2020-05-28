@@ -4,13 +4,30 @@
 #ifndef TENSORRT_YOLO_H
 #define TENSORRT_YOLO_H
 
+#include <thread>
+#include <mutex>
+
 #include "tensorrt.h"
 #include "utils.h"
 
 class Yolo : private TensorRT{
 private:
     common::DetectParams mYoloParams;
+    std::mutex mMutex;
 private:
+
+    //! private func for postProcess
+    //! \param start
+    //! \param length
+    //! \param postThres
+    //! \param origin_output
+    //! \param bboxes
+    void postProcessParall(unsigned long start, unsigned long length, float postThres, const float *origin_output, std::vector<common::Bbox> *bboxes);
+
+    //! Ensure thread safety
+    //! \param bboxes
+    //! \param bbox
+    void safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox);
 
     //! If the image is padded, bboxes need to be restored.
     //! \param ih Input image height
@@ -38,7 +55,7 @@ public:
     //! \param postThres
     //! \param nms
     //! \return [xmin, ymin, xmax, ymax]
-    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1) const;
+    std::vector<common::Bbox> postProcess(common::BufferManager &bufferManager, float postThres=-1, float nmsThres=-1);
 
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
@@ -53,6 +70,7 @@ public:
     //! \param nmsThres NMS Threshold
     //! \return [xmin, ymin, xmax, ymax]
     std::vector<common::Bbox> predOneImage(const cv::Mat &image, float postThres=-1, float nmsThres=-1);
+
 };
 
 #endif //TENSORRT_YOLO_H

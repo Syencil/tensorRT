@@ -20,6 +20,7 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.FP16 = false;
     trtParams.Int32 = false;
     trtParams.Int8 = false;
+    trtParams.worker = 4;
     trtParams.MaxBatch = 100;
     trtParams.MinTimingIteration = 1;
     trtParams.AvgTimingIteration = 2;
@@ -58,6 +59,8 @@ void initDetectParams(common::DetectParams &detectParams){
 }
 
 int main(int args, char **argv){
+    // 差不多预处理11-12ms， 后处理3.5-4ms
+    // 27fps ===> 50fps
     common::InputParams inputParams;
     common::TrtParams trtParams;
     common::DetectParams yoloParams;
@@ -69,14 +72,16 @@ int main(int args, char **argv){
     retinaface.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
-
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    std::vector<common::Bbox> bboxes = retinaface.predOneImage(image);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    std::cout
-            << "Wall clock time passed: "
-            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
-            <<std::endl;
+    std::vector<common::Bbox> bboxes;
+    for(int i=0; i<20; ++i){
+        const auto start_t = std::chrono::high_resolution_clock::now();
+        bboxes = retinaface.predOneImage(image);
+        const auto end_t = std::chrono::high_resolution_clock::now();
+        std::cout
+                << "Wall clock time passed: "
+                << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+                << std::endl;
+    }
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
     return 0;

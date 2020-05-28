@@ -42,6 +42,7 @@ namespace common{
         bool FP16;
         bool Int32;
         bool Int8;
+        int worker;
         int MaxBatch;
         int MinTimingIteration;
         int AvgTimingIteration;

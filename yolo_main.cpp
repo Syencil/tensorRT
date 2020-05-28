@@ -20,6 +20,7 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.FP16 = false;
     trtParams.Int32 = false;
     trtParams.Int8 = false;
+    trtParams.worker = 4;
     trtParams.MaxBatch = 100;
     trtParams.MinTimingIteration = 1;
     trtParams.AvgTimingIteration = 2;
@@ -38,6 +39,8 @@ void initDetectParams(common::DetectParams &yoloParams){
 }
 
 int main(int args, char **argv){
+    // 46ms ===> 35ms worker=4
+    // 21.7fps ===> 28.5fps
     common::InputParams inputParams;
     common::TrtParams trtParams;
     common::DetectParams yoloParams;
@@ -49,14 +52,16 @@ int main(int args, char **argv){
     yolo.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
-
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    std::vector<common::Bbox> bboxes = yolo.predOneImage(image);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    std::cout
-            << "Wall clock time passed: "
-            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
-            <<std::endl;
+    std::vector<common::Bbox> bboxes;
+    for(int i=0; i<25; ++i){
+        const auto start_t = std::chrono::high_resolution_clock::now();
+        bboxes = yolo.predOneImage(image);
+        const auto end_t = std::chrono::high_resolution_clock::now();
+        std::cout
+                << "Wall clock time passed: "
+                << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+                << std::endl;
+    }
     image = renderBoundingBox(image, bboxes);
     cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
     return 0;
