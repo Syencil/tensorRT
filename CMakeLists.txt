@@ -61,18 +61,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${project_dir}/lib)
 set(TRT source/tensorrt.cpp source/logger.cpp source/utils.cpp source/utils.cu)
 set(INT8 source/Int8Calibrator.cu source/Int8Calibrator.cpp)
 
-set(YOLO ${TRT} ${INT8} source/yolo.cpp)
+set(YOLO3 ${TRT} ${INT8} source/yolov3.cpp)
 set(HOURGLASS ${TRT} ${INT8} source/hourglass.cpp)
 set(RESNET ${TRT} ${INT8} source/resnet.cpp)
 set(FCOS ${TRT} ${INT8} source/fcos.cpp)
 set(RETINANET ${TRT} ${INT8} source/retinanet.cpp)
 set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
+set(CTPN ${TRT} ${INT8} source/ctpn.cpp)
+set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
 
 set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
 set(TRT_LIB libnvinfer.so libnvonnxparser.so cudart.so)
 
-cuda_add_executable(yolo yolo_main.cpp)
-target_link_libraries(yolo yolotrt.so ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(yolov3 yolov3_main.cpp)
+target_link_libraries(yolov3 yolo3trt.so ${TRT_LIB} ${CV_LIB})
 
 cuda_add_executable(hourglass hourglass_main.cpp)
 target_link_libraries(hourglass hourglasstrt.so ${TRT_LIB} ${CV_LIB})
@@ -89,11 +91,19 @@ target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(retinaface retinaface_main.cpp)
 target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
 
+cuda_add_executable(ctpn ctpn_main.cpp)
+target_link_libraries(ctpn ctpntrt.so ${TRT_LIB} ${CV_LIB})
+
+cuda_add_executable(yolo5 yolov5_main.cpp ${TRT} ${INT8} source/yolov5.cpp)
+target_link_libraries(yolo5 ${TRT_LIB} ${CV_LIB})
+
 #########################3#####################
-cuda_add_library(yolotrt SHARED ${YOLO})
+cuda_add_library(yolo3trt SHARED ${YOLO3})
 cuda_add_library(hourglasstrt SHARED ${HOURGLASS})
 cuda_add_library(resnettrt SHARED ${RESNET})
 cuda_add_library(fcostrt SHARED ${FCOS})
 cuda_add_library(retinanettrt SHARED ${RETINANET})
 cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
+cuda_add_library(ctpntrt SHARED ${CTPN})
+cuda_add_library(yolo5trt SHARED ${YOLO5})
 

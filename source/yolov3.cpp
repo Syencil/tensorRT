@@ -1,31 +1,34 @@
 // Created by luozhiwang (luozw1994@outlook.com)
 // Date: 2020/3/14
 
-#include "yolo.h"
+#include "yolov3.h"
 
-Yolo::Yolo(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams) :
-        TensorRT(std::move(inputParams), std::move(trtParams)), mYoloParams(std::move(yoloParams)) {
+Yolov3::Yolov3(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams) :
+        TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(yoloParams)) {
 
 }
 
-std::vector<float> Yolo::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> Yolov3::preProcess(const std::vector<cv::Mat> &images) const {
+    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, true, mTrtParams.worker);
     return fileData;
 }
 
-std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres) {
+std::vector<common::Bbox> Yolov3::postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres) {
     if(postThres<0){
-        postThres = mYoloParams.PostThreshold;
+        postThres = mDetectParams.PostThreshold;
     }
     if(nmsThres<0){
-        nmsThres = mYoloParams.NMSThreshold;
+        nmsThres = mDetectParams.NMSThreshold;
     }
     assert(mInputParams.BatchSize==1);
     std::vector<common::Bbox> bboxes;
     // 并发执行
-    for (int scale_idx=0; scale_idx<3; ++scale_idx) {
-        int length = mInputParams.ImgH / mYoloParams.Strides[scale_idx] * mInputParams.ImgW /
-                     mYoloParams.Strides[scale_idx] * mYoloParams.AnchorPerScale;
+    for (int scale_idx=0; scale_idx<mInputParams.OutputTensorNames.size(); ++scale_idx) {
+        const int stride = mDetectParams.Strides[scale_idx];
+        const int width = (mInputParams.ImgW +stride-1)/ stride;
+        const int height = (mInputParams.ImgH +stride-1) / stride;
+        const int length = height * width * mDetectParams.AnchorPerScale;
         auto *origin_output = static_cast<const float *>(bufferManager.getHostBuffer(
                 mInputParams.OutputTensorNames[scale_idx]));
 
@@ -44,7 +47,7 @@ std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager
         std::vector<std::thread> threads(num_threads - 1);
         unsigned long block_start = 0;
         for (auto &thread : threads) {
-            thread = std::thread(&Yolo::postProcessParall, this, block_start, block_size, postThres, origin_output, &bboxes);
+            thread = std::thread(&Yolov3::postProcessParall, this, block_start, block_size, postThres, origin_output, &bboxes);
             block_start += block_size;
         }
         this->postProcessParall(block_start, length-block_start, postThres, origin_output, &bboxes);
@@ -62,25 +65,23 @@ std::vector<common::Bbox> Yolo::postProcess(common::BufferManager &bufferManager
     return bboxes_nms;
 }
 
-bool Yolo::initSession(int initOrder) {
+bool Yolov3::initSession(int initOrder) {
     return TensorRT::initSession(initOrder);
 }
 
 
-std::vector<common::Bbox> Yolo::predOneImage(const cv::Mat &image, float postThres, float nmsThres) {
+std::vector<common::Bbox> Yolov3::predOneImage(const cv::Mat &image, float postThres, float nmsThres) {
     assert(mInputParams.BatchSize==1);
     common::BufferManager bufferManager(mCudaEngine, 1);
     float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
     gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
     std::vector<common::Bbox> bboxes = postProcess(bufferManager, postThres, nmsThres);
-    if(mInputParams.IsPadding){
-        this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes);
-    }
+    this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes, mInputParams.IsPadding);
     return bboxes;
 }
 
-void Yolo::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow,
-                        std::vector<common::Bbox> &bboxes, bool is_padding) {
+void Yolov3::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow,
+                          std::vector<common::Bbox> &bboxes, bool is_padding) {
     if(is_padding){
         float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw), static_cast<float>(oh) / static_cast<float>(ih));
         int nh = static_cast<int>(scale * static_cast<float>(ih));
@@ -104,19 +105,19 @@ void Yolo::transformBbx(const int &ih, const int &iw, const int &oh, const int &
 }
 
 
-void Yolo::safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox) {
+void Yolov3::safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox) {
     std::lock_guard<std::mutex> guard(mMutex);
     (*bboxes).emplace_back((*bbox));
 }
 
 
-void Yolo::postProcessParall(unsigned long start, unsigned long length, float postThres, const float *origin_output, std::vector<common::Bbox> *bboxes) {
+void Yolov3::postProcessParall(unsigned long start, unsigned long length, float postThres, const float *origin_output, std::vector<common::Bbox> *bboxes) {
     common::Bbox bbox;
-    for(unsigned long i=start*(5+mYoloParams.NumClass); i<(start+length)*(5+mYoloParams.NumClass); i+=(5+mYoloParams.NumClass)){
+    for(unsigned long i=start*(5 + mDetectParams.NumClass); i < (start + length) * (5 + mDetectParams.NumClass); i+=(5 + mDetectParams.NumClass)){
         float prob=-1;
         unsigned long cid=-1;
         float conf = origin_output[i+4];
-        for (unsigned long c=i+5; c<i+5+mYoloParams.NumClass; ++c){
+        for (unsigned long c=i+5; c< i + 5 + mDetectParams.NumClass; ++c){
             if (origin_output[c] > prob){
                 prob = origin_output[c];
                 cid = c - 5 - i;

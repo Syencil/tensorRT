@@ -8,17 +8,17 @@
 #include <string>
 #include <iostream>
 #include <cuda.h>
+#include <driver_types.h>
+#include <cuda_runtime_api.h>
 
-#define CHECK(status)                                          \
-    do                                                         \
-    {                                                          \
-        auto ret = (status);                                   \
-        if (ret != 0)                                          \
-        {                                                      \
-            std::cerr << "Cuda failure: " << ret << std::endl; \
-            abort();                                           \
-        }                                                      \
-    } while (0)
+#define CHECK( err ) (HandleError( err, __FILE__, __LINE__ ))
+static void HandleError(cudaError_t err, const char *file, int line ) {
+    if (err != cudaSuccess) {
+        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
+                file, line );
+        exit( EXIT_FAILURE );
+    }
+}
 
 namespace common{
     // <============== Params =============>

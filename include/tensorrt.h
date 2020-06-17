@@ -13,12 +13,11 @@
 #include <opencv2/core.hpp>
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
-#include <bits/unique_ptr.h>
-#include <bits/shared_ptr.h>
+#include <memory>
 
 
 class TensorRT{
-public:
+protected:
     template <typename T>
     using UniquePtr = std::unique_ptr<T, common::InferDeleter>;
     std::shared_ptr<nvinfer1::ICudaEngine> mCudaEngine;
@@ -26,7 +25,7 @@ public:
     common::InputParams mInputParams;
     common::TrtParams mTrtParams;
 
-public:
+protected:
     //! Initialize mInputParams, mTrtParms
     //! \param inputParams Input images params
     //! \param trtParams TensorRT definition configs
@@ -54,7 +53,7 @@ public:
     //! \return Return the inference time in ms. If failed, return 0.
     virtual float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream= nullptr) const;
 
-public:
+protected:
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
     //!                             1 ==========> init from onnxPath and save the session into SerializedPath if it doesnt exist.

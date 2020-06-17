@@ -1,8 +1,8 @@
 // Created by luozhiwang (luozw1994@outlook.com)
 // Date: 2020/3/14
 
-#ifndef TENSORRT_YOLO_H
-#define TENSORRT_YOLO_H
+#ifndef TENSORRT_YOLOV3_H
+#define TENSORRT_YOLOV3_H
 
 #include <thread>
 #include <mutex>
@@ -10,9 +10,9 @@
 #include "tensorrt.h"
 #include "utils.h"
 
-class Yolo : private TensorRT{
+class Yolov3 : private TensorRT{
 private:
-    common::DetectParams mYoloParams;
+    common::DetectParams mDetectParams;
     std::mutex mMutex;
 private:
 
@@ -43,7 +43,7 @@ public:
     //! \param inputParams
     //! \param trtParams
     //! \param yoloParams
-    Yolo(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams);
+    Yolov3(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams);
 
     //! Read images into buffer
     //! \param images
@@ -73,4 +73,4 @@ public:
 
 };
 
-#endif //TENSORRT_YOLO_H
+#endif //TENSORRT_YOLOV3_H

@@ -77,9 +77,7 @@ std::vector<common::Bbox> Retinaface::predOneImage(const cv::Mat &image, float p
     float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
     gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
     std::vector<common::Bbox> bboxes = postProcess(bufferManager, postThres, nmsThres);
-    if(mInputParams.IsPadding){
-        this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes);
-    }
+    this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes, mInputParams.IsPadding);
     return bboxes;
 }
 
@@ -117,6 +115,7 @@ void Retinaface::safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *b
 void Retinaface::postProcessParall(unsigned long start_h, unsigned long length, unsigned long width,
                                    unsigned long s, unsigned long pos, const float *loc, const float *conf, const float *land, float postThres,
                                    std::vector<common::Bbox> *bboxes) {
+    // CHW
     int stride = mDetectParams.Strides[s];
     common::Bbox bbox;
     pos += start_h * width * mDetectParams.AnchorPerScale;
