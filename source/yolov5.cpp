@@ -113,7 +113,7 @@ void Yolov5::postProcessParall(unsigned long start, unsigned long length, unsign
     common::Bbox bbox;
     float cx, cy, w_b, h_b, score;
     int cid;
-    unsigned long pos = start * width * (5+mDetectParams.NumClass);
+    unsigned long pos = start * width * mDetectParams.AnchorPerScale * (5+mDetectParams.NumClass);
     const float *ptr = origin_output + pos;
     for(unsigned long h=start; h<start+length; ++h){
         for(unsigned long w=0; w<width; ++w){

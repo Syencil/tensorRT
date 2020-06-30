@@ -67,7 +67,6 @@ set(RESNET ${TRT} ${INT8} source/resnet.cpp)
 set(FCOS ${TRT} ${INT8} source/fcos.cpp)
 set(RETINANET ${TRT} ${INT8} source/retinanet.cpp)
 set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
-set(CTPN ${TRT} ${INT8} source/ctpn.cpp)
 set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
 
 set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
@@ -91,9 +90,6 @@ target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(retinaface retinaface_main.cpp)
 target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
 
-cuda_add_executable(ctpn ctpn_main.cpp)
-target_link_libraries(ctpn ctpntrt.so ${TRT_LIB} ${CV_LIB})
-
 cuda_add_executable(yolo5 yolov5_main.cpp ${TRT} ${INT8} source/yolov5.cpp)
 target_link_libraries(yolo5 ${TRT_LIB} ${CV_LIB})
 
@@ -104,6 +100,5 @@ cuda_add_library(resnettrt SHARED ${RESNET})
 cuda_add_library(fcostrt SHARED ${FCOS})
 cuda_add_library(retinanettrt SHARED ${RETINANET})
 cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
-cuda_add_library(ctpntrt SHARED ${CTPN})
 cuda_add_library(yolo5trt SHARED ${YOLO5})
 

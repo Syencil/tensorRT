@@ -24,12 +24,15 @@ protected:
     std::shared_ptr<nvinfer1::IExecutionContext> mContext;
     common::InputParams mInputParams;
     common::TrtParams mTrtParams;
+    cudaEvent_t start_t, stop_t;
 
 protected:
     //! Initialize mInputParams, mTrtParms
     //! \param inputParams Input images params
     //! \param trtParams TensorRT definition configs
     TensorRT(common::InputParams inputParams, common::TrtParams trtParams);
+
+    ~TensorRT();
 
     //! Build the network and construct CudaEngine and Context. It should be called before serializeEngine()
     //! \param onnxPath Onnx file path.

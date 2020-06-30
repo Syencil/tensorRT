@@ -10,7 +10,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.BatchSize = 1;
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"images"};
-    inputParams.OutputTensorNames = std::vector<std::string>{"output", "377", "378"};
+    inputParams.OutputTensorNames = std::vector<std::string>{"output", "692", "693"};
     inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /255;};
 }
 
@@ -26,8 +26,8 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.AvgTimingIteration = 2;
     trtParams.CalibrationTablePath = "/work/tensorRT-7/data/yolo5Int8.calibration";
     trtParams.CalibrationImageDir = "/data/dataset/coco/images/train2017";
-    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/yolo5.onnx";
-    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/yolo5.serialized";
+    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/yolov5x.onnx";
+    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/yolov5x.serialized";
 }
 
 std::vector<common::Anchor> initAnchors(){

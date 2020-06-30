@@ -4,7 +4,8 @@
 #include "tensorrt.h"
 
 TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams) : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) {
-
+    CHECK(cudaEventCreate(&this->start_t));
+    CHECK(cudaEventCreate(&this->stop_t));
 }
 
 bool TensorRT::constructNetwork(const std::string &onnxPath) {
@@ -117,15 +118,17 @@ float TensorRT::infer(const std::vector<std::vector<float>> &InputDatas, common:
     for(int i=0; i<InputDatas.size(); ++i){
         std::memcpy((void*)bufferManager.getHostBuffer(mInputParams.InputTensorNames[i]), (void*)InputDatas[i].data(), InputDatas[i].size() * sizeof(float));
     }
-    const auto t_start = std::chrono::high_resolution_clock::now();
     bufferManager.copyInputToDeviceAsync();
+    CHECK(cudaEventRecord(this->start_t, stream));
     if (!mContext->enqueue(mInputParams.BatchSize, bufferManager.getDeviceBindings().data(), stream, nullptr)) {
         gLogError << "Execute Failed!" << std::endl;
         return false;
     }
+    CHECK(cudaEventRecord(this->stop_t, stream));
     bufferManager.copyOutputToHostAsync();
-    const auto t_end = std::chrono::high_resolution_clock::now();
-    const float elapsed_time = std::chrono::duration<float, std::milli>(t_end - t_start).count();
+    float elapsed_time;
+    CHECK(cudaEventSynchronize(this->stop_t));
+    CHECK(cudaEventElapsedTime(&elapsed_time, this->start_t, this->stop_t));
     return elapsed_time;
 }
 
@@ -155,6 +158,11 @@ bool TensorRT::initSession(int initOrder) {
         }
     }
     return true;
+}
+
+TensorRT::~TensorRT() {
+    CHECK(cudaEventDestroy(this->start_t));
+    CHECK(cudaEventDestroy(this->stop_t));
 }
 
 

@@ -1,8 +1,7 @@
-# TensorRT-7 Project
+# TensorRT-7 Network Lib
 ## Introduction
 Python ===> Onnx ===> tensorRT ===> .h/.so <br>
-后面会逐步增加更多网络<br>
-之前trt-6的项目存在版本兼容性问题，现已舍弃。
+Updating...<br>
 
 ## What has it achieved?
 * 支持多线程进行预处理和后处理
@@ -14,6 +13,7 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 * RetinaNet
 * FCOS
 * Hourglass
+* Yolov5(ultralytics)
 
 ## Quick Start
 ### Python tf === > onnx
@@ -36,6 +36,16 @@ python -m tf2onnx.convert
     [--continue_on_error]
     [--verbose]
 ```
+### Python Pytorch ===> Onnx
+```
+torch.onnx.export(model, img, weights, verbose=False, opset_version=11, input_names=['images'],
+                      output_names=['output'])
+```
+### Python Onnx Simplifier
+if can not build the engine in trt, try this first! ===> [onnx-simplifier](https://github.com/daquexian/onnx-simplifier)
+```
+python3 -m onnxsim in.onnx out.onnx
+```
 ### C++
 ```
 cmake . 
@@ -48,6 +58,7 @@ cd bin
 * Onnx必须指定为输入全尺寸，再实际中trt也不存在理想上的动态输入，所以必须在freeze阶段指明输入大小。<br>
 * 构建新项目时，需要继承TensorRT类，只需要实现preProcess，postProcess即可。上层封装为initSession和predOneImage两个方法，方便调用。
 * 由于ONNX和TRT目前算子实现的比较完善，大多数时候只需要实现相应后处理即可，针对特定算子通常可以再python代码中用一些trick进行替换，实在不行可以考虑自定义plugin
+* 如果碰到
 
 ## Yolov5
 ### 简介
@@ -162,6 +173,8 @@ cd bin
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.06.30
+1. 细节修复，使用cudaEvent来计算时间，而不是cpu
 ### 2020.06.17
 1. U版的yolo性能确实好，Python代码封装的也很不错。试了一下yolo5s转成trt速度快了好多，但是准确率也不低
 2. 目前准备转OCR中的ctpn，但是由于代码复现效果一直不好，可能还得等一段时间。

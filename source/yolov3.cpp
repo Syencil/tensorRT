@@ -9,7 +9,6 @@ Yolov3::Yolov3(common::InputParams inputParams, common::TrtParams trtParams, com
 }
 
 std::vector<float> Yolov3::preProcess(const std::vector<cv::Mat> &images) const {
-    const auto start_t = std::chrono::high_resolution_clock::now();
     std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, true, mTrtParams.worker);
     return fileData;
 }
