@@ -7,13 +7,16 @@ Updating...<br>
 * 支持多线程进行预处理和后处理
 * FP32，FP16，INT8量化
 * serialize，deserialize
-* RetinaFace
+
+## Supported Network
+* RetinaFace 
 * ResNet
 * Yolov3
-* RetinaNet
-* FCOS
+* RetinaNet(mmdet)
+* FCOS(mmdet)
 * Hourglass
 * Yolov5(ultralytics)
+* PSENet 
 
 ## Quick Start
 ### Python tf === > onnx
@@ -21,20 +24,6 @@ Updating...<br>
 * [https://github.com/onnx/tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)
 ```
 python -m tf2onnx.convert 
-    [--input SOURCE_GRAPHDEF_PB]
-    [--graphdef SOURCE_GRAPHDEF_PB]
-    [--checkpoint SOURCE_CHECKPOINT]
-    [--saved-model SOURCE_SAVED_MODEL]
-    [--output TARGET_ONNX_MODEL]
-    [--inputs GRAPH_INPUTS]
-    [--outputs GRAPH_OUTPUS]
-    [--inputs-as-nchw inputs_provided_as_nchw]
-    [--opset OPSET]
-    [--target TARGET]
-    [--custom-ops list-of-custom-ops]
-    [--fold_const]
-    [--continue_on_error]
-    [--verbose]
 ```
 ### Python Pytorch ===> Onnx
 ```
@@ -58,7 +47,38 @@ cd bin
 * Onnx必须指定为输入全尺寸，再实际中trt也不存在理想上的动态输入，所以必须在freeze阶段指明输入大小。<br>
 * 构建新项目时，需要继承TensorRT类，只需要实现preProcess，postProcess即可。上层封装为initSession和predOneImage两个方法，方便调用。
 * 由于ONNX和TRT目前算子实现的比较完善，大多数时候只需要实现相应后处理即可，针对特定算子通常可以再python代码中用一些trick进行替换，实在不行可以考虑自定义plugin
-* 如果碰到
+* 关于CHW和HWC的数据格式
+* * CHW: 对于GPU更优。使用CUDA做infer或者后处理的话，由于硬件DRAM的原因，CHW可以保证线程是以coalescing的方式读取。具体性能对比参考[Programming_Massively_Parallel_Processors](https://github.com/Syencil/Programming_Massively_Parallel_Processors)
+* * HWC: 对于CPU更优。使用CPU进行处理的时候，HWC格式可以保证单个线程处理的数据具有连续的内存地址。而CPU缓存具有[空间局部性](https://zh.wikipedia.org/wiki/CPU%E7%BC%93%E5%AD%98)，这样能极大的提升效率。
+* * 综上：如果后处理使用CPU进行decode，建议在onnx输出HWC格式，如果使用GPU进行decode，建议在onnx输出CHW格式。对于输入端则没有具体测试，主要是相信tensorflow虽然按照之前的HWC格式，但是在操作中肯定也是做了优化
+
+## PseNet
+### 简介
+* 位置：psenet_main.cpp
+* python训练原版代码git：[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)
+* 适配TensorRT修改后的代码git：[https://github.com/Syencil/PSENet](https://github.com/Syencil/PSENe)
+### 注意事项
+* torch转onnx的代码可以加在predict.py中，只需要在Pytorch_model这个类里面加一个成员函数即可
+```
+    def export(self, onnx_path, input_size):
+        assert isinstance(input_size, list) or isinstance(input_size, tuple)
+        self.net.export = True
+        img = torch.zeros((1, 3, input_size[0], input_size[1])).to(self.device)
+        with torch.no_grad():
+            torch.onnx.export(self.net, img, onnx_path, verbose=True, opset_version=11, export_params=True, do_constant_folding=True)
+        print("Onnx Simplify...")
+        os.system("python3 -m onnxsim {} {}".format(onnx_path, onnx_path))
+        print('Export complete. ONNX model saved to %s\nView with https://github.com/lutzroeder/netron' % onnx_path)
+```
+* 为了方便trt的处理，我把sigmoid加入到了torch的代码中。在models/model.py中修改PSENet的forward代码，同时__init__中加入成员变量export=False来控制
+```
+        if self.export:
+            x = torch.sigmoid(x)
+        return x
+```
+* 在onnx转换为trt的时候可能会出现[This version of TensorRT only supports asymmetric](https://github.com/NVIDIA/TensorRT/issues/422)这个问题，bilinear的上采样方式可能会存在问题，解决方式是将所有的F.interpolate中的align_corners=True，同时[修改onnx-tensorrt中对应的cpp然后重新编译替换trt的lib](https://github.com/onnx/onnx-tensorrt/pull/418/files)
+* 如果需要看每一个kernel的特征图，只需要在psenet.cpp里面把注释打开即可。
+
 
 ## Yolov5
 ### 简介
@@ -173,6 +193,8 @@ cd bin
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.07.04
+1. 增加OCR系列的PSENet。infer时间不算太慢，但是decode部分的渐进式扩张算法耗时太久，这一块其实可以再优化。
 ### 2020.06.30
 1. 细节修复，使用cudaEvent来计算时间，而不是cpu
 ### 2020.06.17

@@ -58,7 +58,7 @@ namespace common{
     };
 
     struct DetectParams{
-        // Anchor based
+        // Detection/Segmentation
         std::vector<int> Strides;
         std::vector<common::Anchor> Anchors;
         int AnchorPerScale;

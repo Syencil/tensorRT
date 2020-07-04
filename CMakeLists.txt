@@ -93,6 +93,9 @@ target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(yolo5 yolov5_main.cpp ${TRT} ${INT8} source/yolov5.cpp)
 target_link_libraries(yolo5 ${TRT_LIB} ${CV_LIB})
 
+cuda_add_executable(pse psenet_main.cpp ${TRT} ${INT8} source/psenet.cpp)
+target_link_libraries(pse ${TRT_LIB} ${CV_LIB})
+
 #########################3#####################
 cuda_add_library(yolo3trt SHARED ${YOLO3})
 cuda_add_library(hourglasstrt SHARED ${HOURGLASS})
