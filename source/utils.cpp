@@ -131,4 +131,23 @@ cv::Mat renderKeypoint(cv::Mat image, const std::vector<common::Keypoint> &keypo
     return image;
 }
 
+cv::Mat renderPoly(cv::Mat image, const std::vector<std::vector<cv::Point>> &polygons){
+    for(const auto & poly : polygons){
+        for(int i=0; i<poly.size()-1; ++i){
+            cv::line(image, poly[i], poly[i+1], cv::Scalar(0,204,255));
+        }
+    }
+    return image;
+}
+
+cv::Mat renderSegment(cv::Mat image, const cv::Mat &mask){
+    double min_val, max_val;
+    int min_idx[2] = {};
+    int max_idx[2] = {};
+    cv::minMaxIdx(mask, &min_val, &max_val, min_idx, max_idx);
+    cv::Mat color;
+    cv::merge(std::vector<cv::Mat>{mask * (rand()%255), mask * (rand()%(int)(255/max_val)), mask * (rand()%(int)(255/max_val))}, color);
+    cv::addWeighted(image, 1, color, 1, 0, image);
+    return image;
+}
 

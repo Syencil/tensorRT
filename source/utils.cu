@@ -1,18 +1,10 @@
 // Created by luozhiwang (luozw1994@outlook.com)
 // Date: 2020/3/16
+
 #include "utils.h"
-
-
-//static void HandleError(cudaError_t err, const char *file, int line ) {
-//    if (err != cudaSuccess) {
-//        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
-//                file, line );
-//        exit( EXIT_FAILURE );
-//    }
-//}
-//#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
-
 #define DIVUP(m,n) ((m) / (n) + ((m) % (n) > 0))
+
+
 int const threadsPerBlock = sizeof(unsigned long long) * 8;
 
 __device__ inline float devIoU(float const * const a, float const * const b) {
@@ -25,6 +17,20 @@ __device__ inline float devIoU(float const * const a, float const * const b) {
     return interS / (Sa + Sb - interS);
 }
 
+// Set Device
+void _set_device(int device_id) {
+    int current_device;
+    CHECK(cudaGetDevice(&current_device));
+    if (current_device == device_id) {
+        return;
+    }
+    // The call to cudaSetDevice must come before any calls to Get, which
+    // may perform initialization using the GPU.
+    CHECK(cudaSetDevice(device_id));
+}
+
+
+// NMS
 __global__ void nms_kernel(const int n_boxes, const float nms_overlap_thresh,
                            const float *dev_boxes, unsigned long long *dev_mask, int bd=5) {
     const int row_start = blockIdx.y;
@@ -72,16 +78,6 @@ __global__ void nms_kernel(const int n_boxes, const float nms_overlap_thresh,
 
 }
 
-void _set_device(int device_id) {
-    int current_device;
-    CHECK(cudaGetDevice(&current_device));
-    if (current_device == device_id) {
-        return;
-    }
-    // The call to cudaSetDevice must come before any calls to Get, which
-    // may perform initialization using the GPU.
-    CHECK(cudaSetDevice(device_id));
-}
 
 void _nms(int* keep_out, int* num_out, const float* boxes_host, int boxes_num,
           int boxes_dim, float nms_overlap_thresh, int device_id) {
@@ -137,6 +133,19 @@ void _nms(int* keep_out, int* num_out, const float* boxes_host, int boxes_num,
     CHECK(cudaFree(mask_dev));
 }
 
+
+// Sigmoid
+__global__ void sigmoid_kernel(float *input, float *output){
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    // sigmoid(x) = 1 / (1 + exp(-x))
+     output[tid] = 1 / (1+expf(-input[tid]));
+    // fast sigmoid(x) = x / (1 + |x|) https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm
+    // float x = input[tid];
+    // output[tid] = (x / (1 + fabsf(x))) * 0.5 + 0.5;
+}
+
+
+// <===================== Wrapper ========================>
 std::vector<int> nms(std::vector<common::Bbox> bboxes, float threshold) {
     if (bboxes.empty()) {
         return std::vector<int>();
@@ -163,3 +172,19 @@ std::vector<int> nms(std::vector<common::Bbox> bboxes, float threshold) {
     return keep_idx;
 }
 
+void sigmoid(const float *input, float *output, int length, int device_id){
+    _set_device(device_id);
+    // 声明指针
+    float *input_dev, *output_dev;
+    int length_t =  length * sizeof(float);
+    CHECK(cudaMalloc((void**)&input_dev, length_t));
+    CHECK(cudaMalloc((void**)&output_dev, length_t));
+    CHECK(cudaMemcpy(input_dev, input, length_t, cudaMemcpyHostToDevice));
+
+    int block_num = (length-1) / threadsPerBlock + 1;
+    sigmoid_kernel<<<block_num, threadsPerBlock>>>(input_dev, output_dev);
+
+    CHECK(cudaMemcpy(output, output_dev, length_t, cudaMemcpyDeviceToHost));
+    CHECK(cudaFree(input_dev));
+    CHECK(cudaFree(output_dev));
+}

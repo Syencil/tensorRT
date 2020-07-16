@@ -17,6 +17,7 @@ Updating...<br>
 * Hourglass
 * Yolov5(ultralytics)
 * PSENet 
+* PANNet (PSENetV2)
 
 ## Quick Start
 ### Python tf === > onnx
@@ -37,13 +38,13 @@ python3 -m onnxsim in.onnx out.onnx
 ```
 ### C++
 ```
-cmake . 
+cmake -DCMAKE_BUILD_TYPE=Release . 
 make
 cd bin
 ./project_name
 ```
 
-## Attention
+## Tips
 * Onnx必须指定为输入全尺寸，再实际中trt也不存在理想上的动态输入，所以必须在freeze阶段指明输入大小。<br>
 * 构建新项目时，需要继承TensorRT类，只需要实现preProcess，postProcess即可。上层封装为initSession和predOneImage两个方法，方便调用。
 * 由于ONNX和TRT目前算子实现的比较完善，大多数时候只需要实现相应后处理即可，针对特定算子通常可以再python代码中用一些trick进行替换，实在不行可以考虑自定义plugin
@@ -52,11 +53,24 @@ cd bin
 * * HWC: 对于CPU更优。使用CPU进行处理的时候，HWC格式可以保证单个线程处理的数据具有连续的内存地址。而CPU缓存具有[空间局部性](https://zh.wikipedia.org/wiki/CPU%E7%BC%93%E5%AD%98)，这样能极大的提升效率。
 * * 综上：如果后处理使用CPU进行decode，建议在onnx输出HWC格式，如果使用GPU进行decode，建议在onnx输出CHW格式。对于输入端则没有具体测试，主要是相信tensorflow虽然按照之前的HWC格式，但是在操作中肯定也是做了优化
 
+## PanNet (PseNet V2)
+### 简介
+* 位置：psenetv2_main.cpp
+* python训练原版代码git：[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)
+* 适配TensorRT修改后的代码git：[https://github.com/Syencil/PAN.pytorch](https://github.com/Syencil/PAN.pytorch)
+### 注意事项
+* pan和pse代码其实高度相似，导出的方法可以参考PseNet也可以参考我fork后改的代码。
+* pan网络中转出onnx的结果是没有经过sigmoid的(尝试一下加在后处理)
+* sigmoid在CPU中计算耗时比较大，可以参考[fast-sigmoid-algorithm](https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm)。
+CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid ==> 0.589737ms```，而GPU上两者差异忽略不记。
+```
+    fast_sigmoid(x) = (x / (1 + |x|)) * 0.5 + 0.5
+```
+
 ## PseNet
 ### 简介
 * 位置：psenet_main.cpp
 * python训练原版代码git：[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)
-* 适配TensorRT修改后的代码git：[https://github.com/Syencil/PSENet](https://github.com/Syencil/PSENe)
 ### 注意事项
 * torch转onnx的代码可以加在predict.py中，只需要在Pytorch_model这个类里面加一个成员函数即可
 ```
@@ -187,12 +201,16 @@ cd bin
 * 目前trt暂时不支持Group Normalization，如果需要使用GN版本需要单独实现。
 * 有空会更新GN
 
-## Keypoints Detecton
+## Hourglass
 ### 简介
 * 位置：hourglass_main.cpp（Hourglass）
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.07.13
+1. 增加OCR系列的PANNet，即PSEv2。模型整体轻量化，且不需要像PSE那样设置这么多kernel。
+不过讲道理，PSE和PAN在decode的时候都要遍历所有的文本像素点，并没有快很多。测试发现decode部分的实际速度差距已经很小了，感觉FPS提升主要还是换了轻量的backbone。
+2. 这一次将后处理的sigmoid操作没有放到onnx中。同时在网上发现一个fast sigmoid的操作。不过如果走GPU的话差异并不大，走CPU的话速度差了5 6倍。
 ### 2020.07.04
 1. 增加OCR系列的PSENet。infer时间不算太慢，但是decode部分的渐进式扩张算法耗时太久，这一块其实可以再优化。
 ### 2020.06.30

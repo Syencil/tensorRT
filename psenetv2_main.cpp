@@ -1,7 +1,7 @@
 // Created by luozhiwang (luozw1994@outlook.com)
-// Date: 2020/7/1
+// Date: 2020/7/13
 
-#include "psenet.h"
+#include "psenetv2.h"
 
 void initInputParams(common::InputParams &inputParams){
     inputParams.ImgH = 640;
@@ -10,7 +10,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.BatchSize = 1;
     inputParams.IsPadding = false;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
-    inputParams.OutputTensorNames = std::vector<std::string>{"684"};
+    inputParams.OutputTensorNames = std::vector<std::string>{"690"};
     inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) / 255;};
 }
 
@@ -24,10 +24,10 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.MaxBatch = 100;
     trtParams.MinTimingIteration = 1;
     trtParams.AvgTimingIteration = 2;
-    trtParams.CalibrationTablePath = "/work/tensorRT-7/data/psenetInt8.calibration";
+    trtParams.CalibrationTablePath = "/work/tensorRT-7/data/psenetv2Int8.calibration";
     trtParams.CalibrationImageDir = "/data/dataset/ocr/mlt2019/train/images";
-    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/psenet.onnx";
-    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/psenet.serialized";
+    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/psenetv2.onnx";
+    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/psenetv2.serialized";
 }
 
 void initDetectParams(common::DetectParams &detectParams){
@@ -45,13 +45,12 @@ int main(int args, char **argv){
     initTrtParams(trtParams);
     initDetectParams(detectParams);
 
-    Psenet psenet(inputParams, trtParams, detectParams);
-    psenet.initSession(0);
+    Psenetv2 psenetv2(inputParams, trtParams, detectParams);
+    psenetv2.initSession(0);
 
     cv::Mat image = cv::imread("/data/dataset/ocr/icdar/test/images/img_99.jpg");
-
     const auto start_t = std::chrono::high_resolution_clock::now();
-    cv::Mat mask = psenet.predOneImage(image);
+    cv::Mat mask = psenetv2.predOneImage(image);
     const auto end_t = std::chrono::high_resolution_clock::now();
     std::cout
             << "Wall clock time passed: "

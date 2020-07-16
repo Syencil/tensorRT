@@ -29,12 +29,16 @@ std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vect
 //! \return keep index
 std::vector<int> nms(std::vector<common::Bbox>, float threshold);
 
+void sigmoid(const float *input, float *output, int length, int device_id=0);
 
 // ===============Rendering =============>
 cv::Mat renderBoundingBox(cv::Mat image, const std::vector<common::Bbox> &bboxes);
 
 cv::Mat renderKeypoint(cv::Mat image, const std::vector<common::Keypoint> &keypoints);
 
+cv::Mat renderPoly(cv::Mat image, const std::vector<std::vector<cv::Point>> &polygons);
+
+cv::Mat renderSegment(cv::Mat image, const cv::Mat &mask);
 
 
 // ===========Template Operation ==========>

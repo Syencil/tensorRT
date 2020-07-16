@@ -68,6 +68,8 @@ set(FCOS ${TRT} ${INT8} source/fcos.cpp)
 set(RETINANET ${TRT} ${INT8} source/retinanet.cpp)
 set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
 set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
+set(PSENET ${TRT} ${INT8} source/psenet.cpp)
+set(PSENETV2 ${TRT} ${INT8} source/psenetv2.cpp)
 
 set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
 set(TRT_LIB libnvinfer.so libnvonnxparser.so cudart.so)
@@ -90,11 +92,14 @@ target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
 cuda_add_executable(retinaface retinaface_main.cpp)
 target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
 
-cuda_add_executable(yolo5 yolov5_main.cpp ${TRT} ${INT8} source/yolov5.cpp)
-target_link_libraries(yolo5 ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(yolo5 yolov5_main.cpp)
+target_link_libraries(yolo5 yolo5trt.so ${TRT_LIB} ${CV_LIB})
 
-cuda_add_executable(pse psenet_main.cpp ${TRT} ${INT8} source/psenet.cpp)
-target_link_libraries(pse ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(pse psenet_main.cpp)
+target_link_libraries(pse psenettrt.so ${TRT_LIB} ${CV_LIB})
+
+cuda_add_executable(psev2 psenetv2_main.cpp)
+target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${CV_LIB})
 
 #########################3#####################
 cuda_add_library(yolo3trt SHARED ${YOLO3})
@@ -104,4 +109,6 @@ cuda_add_library(fcostrt SHARED ${FCOS})
 cuda_add_library(retinanettrt SHARED ${RETINANET})
 cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
 cuda_add_library(yolo5trt SHARED ${YOLO5})
+cuda_add_library(psenettrt SHARED ${PSENET})
+cuda_add_library(psenetv2trt SHARED ${PSENETV2})
 
