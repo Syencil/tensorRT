@@ -151,3 +151,16 @@ cv::Mat renderSegment(cv::Mat image, const cv::Mat &mask){
     return image;
 }
 
+cv::Mat renderRBox(cv::Mat image, const std::vector<cv::RotatedRect> &RBox) {
+    for(const auto & rb : RBox){
+        std::vector<cv::Point> points;
+        cv::Mat bbox;
+        cv::boxPoints(rb, bbox);
+        cv::Scalar color(0, 204, 255);
+        for (int i = 1; i < bbox.rows; ++i) {
+            cv::line(image, cv::Point(int(bbox.at<float>(i-1, 0) ), int(bbox.at<float>(i-1, 1))),  cv::Point(int(bbox.at<float>(i, 0) ), int(bbox.at<float>(i, 1))), color, 3);
+        }
+        cv::line(image, cv::Point(int(bbox.at<float>(bbox.rows-1, 0) ), int(bbox.at<float>(bbox.rows-1, 1))),  cv::Point(int(bbox.at<float>(0, 0) ), int(bbox.at<float>(0, 1))), color, 3);
+    }
+    return image;
+}

@@ -19,7 +19,7 @@ bool Psenet::initSession(int initOrder) {
     return TensorRT::initSession(initOrder);
 }
 
-cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThres) {
+std::tuple<cv::Mat, std::map<int, std::vector<cv::Point>>> Psenet::postProcess(common::BufferManager &bufferManager, float postThres) {
     if (postThres==-1){
         postThres = mDetectParams.PostThreshold;
     }
@@ -66,6 +66,9 @@ cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThre
     int num_labels = cv::connectedComponentsWithStats(kernels[0], label_image, stats, centroids,4);
     label_image.convertTo(label_image, CV_8U);
     assert(label_image.rows==max_kernel.rows && label_image.cols==max_kernel.cols);
+    // 存储结果
+    std::map<int, std::vector<cv::Point>> contourMaps;
+
     // 渐进式扩张算法
     std::queue<std::tuple<int, int, int>> q;
     std::queue<std::tuple<int, int, int>> q_next;
@@ -74,6 +77,7 @@ cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThre
             auto label = *label_image.ptr(h, w);
             if(label>0){
                 q.emplace(std::make_tuple(w, h, label));
+                contourMaps[label].emplace_back(cv::Point(w, h));
             }
         }
     }
@@ -100,6 +104,7 @@ cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThre
                 }
                 q.emplace(std::make_tuple(tmpx, tmpy, l));
                 *label_image.ptr(tmpy, tmpx) = l;
+                contourMaps[l].emplace_back(cv::Point(tmpx, tmpy));
                 is_edge = false;
             }
             if(is_edge){
@@ -109,23 +114,26 @@ cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThre
         std::swap(q, q_next);
     }
     // cv::Mat ===> Bbox
-    return label_image;
+    return std::make_tuple(label_image, contourMaps);
 }
 
-cv::Mat Psenet::predOneImage(const cv::Mat &image, float postThres) {
+std::tuple<cv::Mat, std::vector<cv::RotatedRect>> Psenet::predOneImage(const cv::Mat &image, float postThres) {
     assert(mInputParams.BatchSize==1);
     common::BufferManager bufferManager(mCudaEngine, 1);
     float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
     gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
     const auto start_t = std::chrono::high_resolution_clock::now();
-    cv::Mat mask = postProcess(bufferManager, postThres);
+    auto result = postProcess(bufferManager, postThres);
     const auto end_t = std::chrono::high_resolution_clock::now();
+    cv::Mat mask = std::get<0>(result);
+    auto points = std::get<1>(result);
     gLogInfo << "Post time is "<< std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms" << std::endl;
-    mask = this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, mask, mInputParams.IsPadding);
-    return mask;
+    auto RBox = this->point2RBox(points);
+    mask = this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, mask, RBox, mInputParams.IsPadding);
+    return std::make_tuple(mask, RBox);
 }
 
-cv::Mat Psenet::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask,
+cv::Mat Psenet::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, std::vector<cv::RotatedRect> &RBox,
                           bool is_padding) {
     cv::Mat out(ih, iw, CV_8U);
     if(is_padding) {
@@ -137,12 +145,36 @@ cv::Mat Psenet::transformBbx(const int &ih, const int &iw, const int &oh, const 
         int dw = (ow - nw) / 2;
         cv::Mat crop_mask = mask(cv::Range(dh, dh + nh), cv::Range(dw, dw + nw));
         cv::resize(crop_mask, out, out.size());
+
+        for (auto & rec : RBox){
+            rec.size.width /= scale;
+            rec.size.height /= scale;
+            rec.center.x = (rec.center.x - dw) / scale;
+            rec.center.y = (rec.center.y - dh) / scale;
+        }
     }else{
         const cv::Mat& crop_mask (mask);
         cv::resize(crop_mask, out, out.size());
+        for (auto & rec : RBox){
+            rec.size.width = rec.size.width * iw / ow;
+            rec.size.height = rec.size.height * ih / oh;
+            rec.center.x = rec.center.x * iw / ow;
+            rec.center.y = rec.center.y * ih / oh;
+        }
     }
     return out;
 }
+
+std::vector<cv::RotatedRect> Psenet::point2RBox(std::map<int, std::vector<cv::Point>> contoursMaps) {
+    std::vector<cv::RotatedRect>RBox;
+    for (const auto & cnt : contoursMaps){
+        cv::Mat bbox;
+        cv::RotatedRect rect = cv::minAreaRect(cnt.second);
+        RBox.emplace_back(rect);
+    }
+    return RBox;
+}
+
 
 
 

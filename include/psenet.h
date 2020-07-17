@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <mutex>
+#include <map>
 
 #include "tensorrt.h"
 #include "utils.h"
@@ -22,8 +23,9 @@ private:
     //! \param oh Output image height
     //! \param ow Output image width
     //! \param mask cv::Mat
-    cv::Mat transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding=true);
+    cv::Mat transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, std::vector<cv::RotatedRect> &RBox, bool is_padding=true);
 
+    std::vector<cv::RotatedRect> point2RBox(std::map<int, std::vector<cv::Point>>);
 public:
 
     //! Initializing
@@ -41,8 +43,8 @@ public:
     //! \param bufferManager It contains inference result
     //! \param postThres
     //! \param nms
-    //! \return cv::Mat CV8U    point_value = 0, 1, 2... cid (0 for background)
-    cv::Mat postProcess(common::BufferManager &bufferManager, float postThres=-1);
+    //! \return cv::Mat CV8U point_value = 0, 1, 2... cid (0 for background), contours
+    std::tuple<cv::Mat, std::map<int, std::vector<cv::Point>>> postProcess(common::BufferManager &bufferManager, float postThres=-1);
 
     //! Init Inference Session
     //! \param initOrder 0==========> init from SerializedPath. If failed, init from onnxPath.
@@ -54,8 +56,8 @@ public:
     //!
     //! \param image
     //! \param posThres Post process threshold.
-    //! \return Segmentation Mask CV8U
-    cv::Mat predOneImage(const cv::Mat &image, float postThres=-1);
+    //! \return Segmentation Mask CV8U, RotateRect
+    std::tuple<cv::Mat, std::vector<cv::RotatedRect>> predOneImage(const cv::Mat &image, float postThres=-1);
 
 };
 

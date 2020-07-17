@@ -70,6 +70,9 @@ set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
 set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
 set(PSENET ${TRT} ${INT8} source/psenet.cpp)
 set(PSENETV2 ${TRT} ${INT8} source/psenetv2.cpp)
+set(CENTERNET ${TRT} ${INT8} source/centernet.cpp)
+
+set(DCNV2 source/dcnv2.cpp)
 
 set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
 set(TRT_LIB libnvinfer.so libnvonnxparser.so cudart.so)
@@ -100,6 +103,9 @@ target_link_libraries(pse psenettrt.so ${TRT_LIB} ${CV_LIB})
 
 cuda_add_executable(psev2 psenetv2_main.cpp)
 target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${CV_LIB})
+
+cuda_add_executable(centernet centernet.cpp ${CENTERNET} ${DCNV2})
+target_link_libraries(centernet ${TRT_LIB} ${CV_LIB})
 
 #########################3#####################
 cuda_add_library(yolo3trt SHARED ${YOLO3})

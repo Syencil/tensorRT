@@ -8,16 +8,18 @@ Updating...<br>
 * FP32，FP16，INT8量化
 * serialize，deserialize
 
-## Supported Network
-* RetinaFace 
-* ResNet
-* Yolov3
-* RetinaNet(mmdet)
-* FCOS(mmdet)
-* Hourglass
-* Yolov5(ultralytics)
-* PSENet 
-* PANNet (PSENetV2)
+## Model Zoo
+|Model|Training git|
+|----|----|
+|PANNet(Pse++)|[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)<br>[https://github.com/Syencil/PAN.pytorch](https://github.com/Syencil/PAN.pytorch)
+|PSENet|[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)|
+|Yolov5|[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5) <br> [https://github.com/Syencil/yolov5](https://github.com/Syencil/yolov5)|
+|Yolov3|[https://github.com/YunYang1994/tensorflow-yolov3](https://github.com/YunYang1994/tensorflow-yolov3) <br> [https://github.com/Syencil/tensorflow-yolov3][https://github.com/Syencil/tensorflow-yolov3]|
+|Retinaface|[https://github.com/biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface) <br> [https://github.com/Syencil/Pytorch_Retinaface](https://github.com/Syencil/Pytorch_Retinaface)|
+|Retinanet|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py)|
+|Fcos|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py)|
+|ResNet|-|
+|Hourglass|[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)|
 
 ## Quick Start
 ### Python tf === > onnx
@@ -211,6 +213,7 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 1. 增加OCR系列的PANNet，即PSEv2。模型整体轻量化，且不需要像PSE那样设置这么多kernel。
 不过讲道理，PSE和PAN在decode的时候都要遍历所有的文本像素点，并没有快很多。测试发现decode部分的实际速度差距已经很小了，感觉FPS提升主要还是换了轻量的backbone。
 2. 这一次将后处理的sigmoid操作没有放到onnx中。同时在网上发现一个fast sigmoid的操作。不过如果走GPU的话差异并不大，走CPU的话速度差了5 6倍。
+3. 改了一下OCR检测输出，既有mask也有RBox
 ### 2020.07.04
 1. 增加OCR系列的PSENet。infer时间不算太慢，但是decode部分的渐进式扩张算法耗时太久，这一块其实可以再优化。
 ### 2020.06.30

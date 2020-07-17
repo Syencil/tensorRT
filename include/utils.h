@@ -40,6 +40,8 @@ cv::Mat renderPoly(cv::Mat image, const std::vector<std::vector<cv::Point>> &pol
 
 cv::Mat renderSegment(cv::Mat image, const cv::Mat &mask);
 
+cv::Mat renderRBox(cv::Mat image, const std::vector<cv::RotatedRect> &RBox);
+
 
 // ===========Template Operation ==========>
 template<class ForwardIterator>
