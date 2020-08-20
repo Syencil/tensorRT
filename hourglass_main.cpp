@@ -48,16 +48,17 @@ int main(int args, char **argv){
     hourglass.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_3.jpg");
+    for (int i=0; i<10; ++i){
+        const auto start_t = std::chrono::high_resolution_clock::now();
+        std::vector<common::Keypoint> keypoints = hourglass.predOneImage(image);
+        const auto end_t = std::chrono::high_resolution_clock::now();
+        std::cout
+                << "Wall clock time passed: "
+                << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+                <<std::endl;
 
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    std::vector<common::Keypoint> keypoints = hourglass.predOneImage(image);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    std::cout
-            << "Wall clock time passed: "
-            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
-            <<std::endl;
-
-    image = renderKeypoint(image, keypoints);
-    cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
+        image = renderKeypoint(image, keypoints);
+        cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
+    }
     return 0;
 }

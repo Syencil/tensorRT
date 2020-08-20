@@ -81,15 +81,16 @@ int main(int args, char **argv){
     retinaNet.initSession(0);
 
     cv::Mat image = cv::imread("/work/tensorRT-7/data/image/coco_1.jpg");
-
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    std::vector<common::Bbox> bboxes = retinaNet.predOneImage(image);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    std::cout
-            << "Wall clock time passed: "
-            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
-            <<std::endl;
-    image = renderBoundingBox(image, bboxes);
-    cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
+    for(int i=0; i<10; ++i){
+        const auto start_t = std::chrono::high_resolution_clock::now();
+        std::vector<common::Bbox> bboxes = retinaNet.predOneImage(image);
+        const auto end_t = std::chrono::high_resolution_clock::now();
+        std::cout
+                << "Wall clock time passed: "
+                << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+                <<std::endl;
+        image = renderBoundingBox(image, bboxes);
+        cv::imwrite("/work/tensorRT-7/data/image/render.jpg", image);
+    }
     return 0;
 }

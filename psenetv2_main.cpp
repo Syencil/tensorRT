@@ -49,13 +49,16 @@ int main(int args, char **argv){
     psenetv2.initSession(0);
 
     cv::Mat image = cv::imread("/data/dataset/ocr/icdar/test/images/img_99.jpg");
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    cv::Mat mask = psenetv2.predOneImage(image);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    std::cout
-            << "Wall clock time passed: "
-            << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
-            <<std::endl;
-    cv::imwrite("/work/tensorRT-7/data/image/render.jpg", renderSegment(image, mask));
+    for(int i=0; i<10; ++i){
+        const auto start_t = std::chrono::high_resolution_clock::now();
+        cv::Mat mask = psenetv2.predOneImage(image);
+        const auto end_t = std::chrono::high_resolution_clock::now();
+        std::cout
+                << "Wall clock time passed: "
+                << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
+                <<std::endl;
+        cv::imwrite("/work/tensorRT-7/data/image/render.jpg", renderSegment(image, mask));
+    }
+
     return 0;
 }

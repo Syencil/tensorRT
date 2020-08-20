@@ -3,62 +3,41 @@ project(tensorRT)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS on)
 
-# output
-set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/bin")
-message(STATUS "Project_binary_dir : ${PROJECT_BINARY_DIR}")
-# c++ 11
+# c++ 11 / 14 / 17
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-# tensorRT
-#set(tensorrt_dir /work/TensorRT-6.0.1.5)
-set(tensorrt_dir /work/TensorRT-7.0.0.11)
-set(project_dir /work/tensorRT-7)
-include_directories(${tensorrt_dir}/include)
-include_directories(${project_dir}/include)
-link_directories(${tensorrt_dir}/lib)
-link_directories(${project_dir}/source)
-link_directories(${project_dir}/lib)
+# Output
+set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+message(STATUS "Project_binary_dir : ${PROJECT_BINARY_DIR}")
 
-# Loggers
-aux_source_directory(${common_dir}/source common_src)
-set(COMMON_SRC ${common_src} CACHE INTERNAL "common_source" )
-set(LOGGER_SRC ${common_dir}/source/logger.cpp CACHE INTERNAL "logger" )
-
-message(STATUS "TensorRT Header => ${tensorrt_dir}/include")
-message(STATUS "TensorRT Lib => ${tensorrt_dir}/lib")
+# Project
+include_directories(${PROJECT_SOURCE_DIR}/include)
+link_directories(${PROJECT_SOURCE_DIR}/source)
+link_directories(${PROJECT_SOURCE_DIR}/lib)
 
 # find opencv
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
-if(NOT OpenCV_LIBRARY_DIRS)
-    set(OpenCV_LIBRARY_DIRS /usr/local/lib)
-    message(WARING " Can not find opencv lib. It will use the default path => ${OpenCV_LIBRARY_DIRS}")
+if (OpenCV_FOUND)
+    message(STATUS "OpenCV FOUND")
+    include_directories(${OpenCV_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "OpenCV Not Found!")
 endif()
-link_directories(${OpenCV_LIBRARY_DIRS})
-message(STATUS "OpenCV_INCLUDE_DIRS => ${OpenCV_INCLUDE_DIRS}")
-message(STATUS "OpenCV_LIBRARY_DIRS => ${OpenCV_LIBRARY_DIRS}")
-
-if(NOT OpenCV_FOUND)
-    message(ERROR "OpenCV not found!")
-endif(NOT OpenCV_FOUND)
 
 # find cuda
-find_package(CUDA)
 find_package(CUDA REQUIRED)
-
-#include_directories(${CUDA_INCLUDE_DIRS})
-include_directories(/usr/local/cuda/targets/x86_64-linux/include)
-if(NOT CUDA_LIBRARY_DIRS)
-    set(CUDA_LIBRARY_DIRS /usr/local/cuda/lib64)
-    message(WARING " Can not find CUDA lib. It will use the default path => ${CUDA_LIBRARY_DIRS}")
+if (CUDA_FOUND)
+    message(STATUS "CUDA FOUND")
+    include_directories(${CUDA_INCLUDE_DIRS})
+    link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+else()
+    message(FATAL_ERROR "CUDA Not Found!")
 endif()
-link_directories(${CUDA_LIBRARY_DIRS})
-message(STATUS "CUDA_INCLUDE_DIRS : ${CUDA_INCLUDE_DIRS}")
-message(STATUS "CUDA_LIBRARY_DIRS : ${CUDA_LIBRARY_DIRS}")
+
 
 ###############################################
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${project_dir}/lib)
-set(TRT source/tensorrt.cpp source/logger.cpp source/utils.cpp source/utils.cu)
+set(TRT source/tensorrt.cpp source/logger.cpp source/utils.cpp source/utils.cu source/thread_safety_stl.cpp)
 set(INT8 source/Int8Calibrator.cu source/Int8Calibrator.cpp)
 
 set(YOLO3 ${TRT} ${INT8} source/yolov3.cpp)
@@ -70,51 +49,45 @@ set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
 set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
 set(PSENET ${TRT} ${INT8} source/psenet.cpp)
 set(PSENETV2 ${TRT} ${INT8} source/psenetv2.cpp)
-set(CENTERNET ${TRT} ${INT8} source/centernet.cpp)
 
-set(DCNV2 source/dcnv2.cpp)
-
-set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so)
-set(TRT_LIB libnvinfer.so libnvonnxparser.so cudart.so)
+#set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so) // 主要用到这几个
+set(TRT_LIB libnvinfer.so.7.0.0 libnvonnxparser.so.7.0.0 cuda.so)
 
 cuda_add_executable(yolov3 yolov3_main.cpp)
-target_link_libraries(yolov3 yolo3trt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(yolov3 yolov3trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(hourglass hourglass_main.cpp)
-target_link_libraries(hourglass hourglasstrt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(hourglass hourglasstrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
-cuda_add_executable(resnet resnet_main.cpp ${RESNET})
-target_link_libraries(resnet resnettrt.so ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(resnet resnet_main.cpp)
+target_link_libraries(resnet resnettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(fcos fcos_main.cpp)
-target_link_libraries(fcos fcostrt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(fcos fcostrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(retinanet retinanet_main.cpp)
-target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(retinanet retinanettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(retinaface retinaface_main.cpp)
-target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(retinaface retinafacetrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
-cuda_add_executable(yolo5 yolov5_main.cpp)
-target_link_libraries(yolo5 yolo5trt.so ${TRT_LIB} ${CV_LIB})
+cuda_add_executable(yolov5 yolov5_main.cpp)
+target_link_libraries(yolov5 yolov5trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(pse psenet_main.cpp)
-target_link_libraries(pse psenettrt.so ${TRT_LIB} ${CV_LIB})
+target_link_libraries(pse psenettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 cuda_add_executable(psev2 psenetv2_main.cpp)
-target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${CV_LIB})
-
-cuda_add_executable(centernet centernet.cpp ${CENTERNET} ${DCNV2})
-target_link_libraries(centernet ${TRT_LIB} ${CV_LIB})
+target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 #########################3#####################
-cuda_add_library(yolo3trt SHARED ${YOLO3})
+cuda_add_library(yolov3trt SHARED ${YOLO3})
 cuda_add_library(hourglasstrt SHARED ${HOURGLASS})
 cuda_add_library(resnettrt SHARED ${RESNET})
 cuda_add_library(fcostrt SHARED ${FCOS})
 cuda_add_library(retinanettrt SHARED ${RETINANET})
 cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
-cuda_add_library(yolo5trt SHARED ${YOLO5})
+cuda_add_library(yolov5trt SHARED ${YOLO5})
 cuda_add_library(psenettrt SHARED ${PSENET})
 cuda_add_library(psenetv2trt SHARED ${PSENETV2})
 

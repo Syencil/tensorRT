@@ -1,43 +1,30 @@
 # TensorRT-7 Network Lib
 ## Introduction
 Python ===> Onnx ===> tensorRT ===> .h/.so <br>
-Updating...<br>
-
-## What has it achieved?
-* 支持多线程进行预处理和后处理
-* FP32，FP16，INT8量化
-* serialize，deserialize
+支持多线程进行预处理和后处理。支持FP32，FP16，INT8量化。支持serialize，deserialize <br>
+支持线程池实现。支持infer时GPU和CPU端异步进行实现延迟隐藏 (TODO) <br>
 
 ## Model Zoo
-|Model|Training git|
-|----|----|
-|PANNet(Pse++)|[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)<br>[https://github.com/Syencil/PAN.pytorch](https://github.com/Syencil/PAN.pytorch)
-|PSENet|[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)|
-|Yolov5|[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5) <br> [https://github.com/Syencil/yolov5](https://github.com/Syencil/yolov5)|
-|Yolov3|[https://github.com/YunYang1994/tensorflow-yolov3](https://github.com/YunYang1994/tensorflow-yolov3) <br> [https://github.com/Syencil/tensorflow-yolov3][https://github.com/Syencil/tensorflow-yolov3]|
-|Retinaface|[https://github.com/biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface) <br> [https://github.com/Syencil/Pytorch_Retinaface](https://github.com/Syencil/Pytorch_Retinaface)|
-|Retinanet|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py)|
-|Fcos|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py)|
-|ResNet|-|
-|Hourglass|[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)|
+|Model|Training git|Infer Time|Total Time|
+|----|----|----|----|
+|PANNet(Pse++)|[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)<br>[https://github.com/Syencil/PAN.pytorch](https://github.com/Syencil/PAN.pytorch)|18.5ms|45ms|
+|PSENet|[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)|22ms|48ms|
+|Yolov5x|[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5) <br> [https://github.com/Syencil/yolov5](https://github.com/Syencil/yolov5)|32.5ms|58ms|
+|Yolov3|[https://github.com/YunYang1994/tensorflow-yolov3](https://github.com/YunYang1994/tensorflow-yolov3) <br> [https://github.com/Syencil/tensorflow-yolov3][https://github.com/Syencil/tensorflow-yolov3]|14.5ms|29.5ms|
+|Retinaface|[https://github.com/biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface) <br> [https://github.com/Syencil/Pytorch_Retinaface](https://github.com/Syencil/Pytorch_Retinaface)|2.3ms|12.3ms|
+|Retinanet|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py)|22.9ms|333ms|
+|Fcos|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py)|-|-|
+|ResNet|-|-|-|
+|Hourglass|[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)|28ms|37ms|
+测试环境为Tesla P40 + 4个CPU线程。
 
 ## Quick Start
-### Python tf === > onnx
-* Freeze Graph
-* [https://github.com/onnx/tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)
-```
-python -m tf2onnx.convert 
-```
-### Python Pytorch ===> Onnx
-```
-torch.onnx.export(model, img, weights, verbose=False, opset_version=11, input_names=['images'],
-                      output_names=['output'])
-```
-### Python Onnx Simplifier
-if can not build the engine in trt, try this first! ===> [onnx-simplifier](https://github.com/daquexian/onnx-simplifier)
-```
-python3 -m onnxsim in.onnx out.onnx
-```
+### Code -> Onnx
+| |git|Convert|
+|----|----|---|
+|tensorflow|[https://github.com/onnx/tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)|```python -m tf2onnx.convert ```|
+|pytorch|-|```torch.onnx.export(model, img, weights, verbose=False,```<br>``` opset_version=11, input_names=['images'], output_names=['output'])```|
+|Onnx|[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)|```python3 -m onnxsim in.onnx out.onnx```|
 ### C++
 ```
 cmake -DCMAKE_BUILD_TYPE=Release . 
@@ -209,6 +196,9 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.08.19
+1. 重新写了CMAKE，把历史遗留的一些问题解决了。重新组织语言，尽可能用cmake内置的一些变量，同时把依赖的一些路径进行合并，提升工程的可移植性。
+2. 测了OpenMP，在多线程执行任务的速度上不如std\:\:thread，但是需要频繁开启销毁线程时速度比std\:\:thread快。后来查到OpenMP是基于线程池的，故考虑用线程池来代替。
 ### 2020.07.13
 1. 增加OCR系列的PANNet，即PSEv2。模型整体轻量化，且不需要像PSE那样设置这么多kernel。
 不过讲道理，PSE和PAN在decode的时候都要遍历所有的文本像素点，并没有快很多。测试发现decode部分的实际速度差距已经很小了，感觉FPS提升主要还是换了轻量的backbone。
