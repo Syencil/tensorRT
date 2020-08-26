@@ -9,6 +9,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.ImgC = 3;
     inputParams.BatchSize = 1;
     inputParams.IsPadding = false;
+    inputParams.HWC = false;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
     inputParams.OutputTensorNames = std::vector<std::string>{"690"};
     inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) / 255;};
@@ -48,7 +49,7 @@ int main(int args, char **argv){
     Psenetv2 psenetv2(inputParams, trtParams, detectParams);
     psenetv2.initSession(0);
 
-    cv::Mat image = cv::imread("/data/dataset/ocr/icdar/test/images/img_99.jpg");
+    cv::Mat image = cv::imread("/work/tensorRT-7/data/image/img_99.jpg");
     for(int i=0; i<10; ++i){
         const auto start_t = std::chrono::high_resolution_clock::now();
         cv::Mat mask = psenetv2.predOneImage(image);

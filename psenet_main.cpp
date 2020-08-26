@@ -51,17 +51,13 @@ int main(int args, char **argv){
     cv::Mat image = cv::imread("/data/dataset/ocr/icdar/test/images/img_99.jpg");
     for(int i=0; i<10; ++i){
         const auto start_t = std::chrono::high_resolution_clock::now();
-        auto result = psenet.predOneImage(image);
+        auto mask = psenet.predOneImage(image);
         const auto end_t = std::chrono::high_resolution_clock::now();
-        cv::Mat mask = std::get<0>(result);
-        std::vector<cv::RotatedRect> RBox = std::get<1>(result);
         std::cout
                 << "Wall clock time passed: "
                 << std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms"
                 <<std::endl;
-        auto render_img = renderSegment(image, mask);
-        render_img = renderRBox(image, RBox);
-        cv::imwrite("/work/tensorRT-7/data/image/render.jpg", render_img);
+        cv::imwrite("/work/tensorRT-7/data/image/render.jpg", renderSegment(image, mask));
     }
     return 0;
 }

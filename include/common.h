@@ -29,6 +29,7 @@ namespace common{
         int ImgC;
         int BatchSize;
         bool IsPadding;
+        bool HWC;
         // Tensor
         std::vector<std::string> InputTensorNames;
         std::vector<std::string> OutputTensorNames;

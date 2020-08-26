@@ -2,21 +2,24 @@
 // Date: 2020/7/13
 
 #include <queue>
+#include <utility>
 
 #include "psenetv2.h"
 
-Psenetv2::Psenetv2(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams):
-        TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(yoloParams)){
+
+Psenetv2::Psenetv2(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams)
+        : Segmentation(std::move(inputParams), std::move(trtParams), std::move(yoloParams)) {
 
 }
+
 
 std::vector<float> Psenetv2::preProcess(const std::vector<cv::Mat> &images) const {
-    std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, false, mTrtParams.worker);
-    return fileData;
+    return Segmentation::preProcess(images);
 }
 
-bool Psenetv2::initSession(int initOrder) {
-    return TensorRT::initSession(initOrder);
+float Psenetv2::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                      cudaStream_t stream) const {
+    return Segmentation::infer(InputDatas, bufferManager, stream);
 }
 
 cv::Mat Psenetv2::postProcess(common::BufferManager &bufferManager, float postThres) {
@@ -126,38 +129,23 @@ cv::Mat Psenetv2::postProcess(common::BufferManager &bufferManager, float postTh
     return label_image;
 }
 
-cv::Mat Psenetv2::predOneImage(const cv::Mat &image, float postThres) {
-    assert(mInputParams.BatchSize==1);
-    common::BufferManager bufferManager(mCudaEngine, 1);
-    const auto pre_start_t = std::chrono::high_resolution_clock::now();
-    auto preprocess = preProcess(std::vector<cv::Mat>{image});
-    const auto pre_end_t = std::chrono::high_resolution_clock::now();
-    gLogInfo << "Pre-process time is "<< std::chrono::duration<double, std::milli>(pre_end_t-pre_start_t).count()<<"ms" << std::endl;
-    float elapsedTime = infer(std::vector<std::vector<float>>{preprocess}, bufferManager);
-    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
-    const auto post_start_t = std::chrono::high_resolution_clock::now();
-    cv::Mat mask = postProcess(bufferManager, postThres);
-    const auto post_end_t = std::chrono::high_resolution_clock::now();
-    gLogInfo << "Post-process time is "<< std::chrono::duration<double, std::milli>(post_end_t-post_start_t).count()<<"ms" << std::endl;
-    mask = this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, mask, mInputParams.IsPadding);
-    return mask;
+void Psenetv2::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
+    Segmentation::transform(ih, iw, oh, ow, mask, is_padding);
 }
 
-cv::Mat Psenetv2::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask,
-                             bool is_padding) {
-    cv::Mat out(ih, iw, CV_8U);
-    if(is_padding) {
-        float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw),
-                               static_cast<float>(oh) / static_cast<float>(ih));
-        int nh = static_cast<int>(scale * static_cast<float>(ih));
-        int nw = static_cast<int>(scale * static_cast<float>(iw));
-        int dh = (oh - nh) / 2;
-        int dw = (ow - nw) / 2;
-        cv::Mat crop_mask = mask(cv::Range(dh, dh + nh), cv::Range(dw, dw + nw));
-        cv::resize(crop_mask, out, out.size());
-    }else{
-        const cv::Mat& crop_mask (mask);
-        cv::resize(crop_mask, out, out.size());
-    }
-    return out;
+bool Psenetv2::initSession(int initOrder) {
+    return Segmentation::initSession(initOrder);
 }
+
+cv::Mat Psenetv2::predOneImage(const cv::Mat &image, float postThres) {
+    return Segmentation::predOneImage(image, postThres);
+}
+
+
+
+
+
+
+
+
+

@@ -9,6 +9,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.ImgC = 3;
     inputParams.BatchSize = 1;
     inputParams.IsPadding = true;
+    inputParams.HWC = false;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
     inputParams.OutputTensorNames = std::vector<std::string>{"815", "816", "841", "842", "867", "868", "893", "894", "919", "920"};
     inputParams.pFunction = [](unsigned char &x){return (static_cast<float>(x) -118) / 58;};
@@ -65,7 +66,7 @@ void initDetectParams(common::DetectParams &detectParams){
     detectParams.AnchorPerScale = 9;
     detectParams.NumClass = 80;
     detectParams.NMSThreshold = 0.5;
-    detectParams.PostThreshold = 0.4;
+    detectParams.PostThreshold = 0.6;
 }
 
 int main(int args, char **argv){

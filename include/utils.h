@@ -68,8 +68,7 @@ void write(char*& buffer, const T& val){
 }
 
 template <typename T>
-T read(const char*& buffer)
-{
+T read(const char*& buffer){
     T val = *reinterpret_cast<const T*>(buffer);
     buffer += sizeof(T);
     return val;
@@ -82,5 +81,27 @@ template <typename T>
 T sigmoid(const T &n){
     return 1 / (1+exp(-n));
 }
+
+// ===========Time Fun ==========>
+template <typename _ClockType>
+class Clock{
+private:
+    std::chrono::time_point<_ClockType> start_t;
+    std::chrono::time_point<_ClockType> end_t;
+
+public:
+    void tick(){
+        start_t = _ClockType::now();
+    }
+    void tock() {
+        end_t = _ClockType::now();
+    }
+
+    template <typename T>
+    T duration(){
+        T elapsedTime = std::chrono::duration<T, std::milli>(end_t - start_t).count();
+        return elapsedTime;
+    }
+};
 
 #endif //TENSORRT_7_UTILS_H

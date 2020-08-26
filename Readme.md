@@ -16,14 +16,14 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 |Fcos|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py)|-|-|
 |ResNet|-|-|-|
 |Hourglass|[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)|28ms|37ms|
-测试环境为Tesla P40 + 4个CPU线程。
+* 测试环境为Tesla P40 + 4个CPU线程。
 
 ## Quick Start
 ### Code -> Onnx
 | |git|Convert|
 |----|----|---|
 |tensorflow|[https://github.com/onnx/tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)|```python -m tf2onnx.convert ```|
-|pytorch|-|```torch.onnx.export(model, img, weights, verbose=False,```<br>``` opset_version=11, input_names=['images'], output_names=['output'])```|
+|pytorch|-|```torch.onnx.export(model, img, weights, verbose=False, opset_version=11, input_names=['images'], output_names=['output'])```|
 |Onnx|[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)|```python3 -m onnxsim in.onnx out.onnx```|
 ### C++
 ```
@@ -196,6 +196,11 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.08.26
+1. 整体抽象化，严格按照面向对象将模型剥离出来，提高代码复用率。
+2. Detection类已转换网络：yolov5，yolov3，retinaface，retinanet，fcos
+3. Segmentation类已转换网络：psenet，psev2
+4. 尚未转换的网络：rensnet（分类），hourglass（关键点）
 ### 2020.08.19
 1. 重新写了CMAKE，把历史遗留的一些问题解决了。重新组织语言，尽可能用cmake内置的一些变量，同时把依赖的一些路径进行合并，提升工程的可移植性。
 2. 测了OpenMP，在多线程执行任务的速度上不如std\:\:thread，但是需要频繁开启销毁线程时速度比std\:\:thread快。后来查到OpenMP是基于线程池的，故考虑用线程池来代替。

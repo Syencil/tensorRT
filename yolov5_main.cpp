@@ -8,6 +8,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.ImgW = 640;
     inputParams.ImgC = 3;
     inputParams.BatchSize = 1;
+    inputParams.HWC = false;
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"images"};
     inputParams.OutputTensorNames = std::vector<std::string>{"output", "692", "693"};

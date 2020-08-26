@@ -3,6 +3,9 @@
 
 #include "tensorrt.h"
 
+#include <utility>
+
+
 TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams) : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) {
     CHECK(cudaEventCreate(&this->start_t));
     CHECK(cudaEventCreate(&this->stop_t));
@@ -120,7 +123,7 @@ float TensorRT::infer(const std::vector<std::vector<float>> &InputDatas, common:
     }
     bufferManager.copyInputToDeviceAsync();
     CHECK(cudaEventRecord(this->start_t, stream));
-    if (!mContext->enqueue(mInputParams.BatchSize, bufferManager.getDeviceBindings().data(), stream, nullptr)) {
+    if (!mContext->enqueueV2(bufferManager.getDeviceBindings().data(), stream, nullptr)) {
         gLogError << "Execute Failed!" << std::endl;
         return false;
     }
@@ -165,6 +168,132 @@ TensorRT::~TensorRT() {
     CHECK(cudaEventDestroy(this->stop_t));
 }
 
+std::vector<float> TensorRT::preProcess(const std::vector<cv::Mat> &images) const {
+    std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, mInputParams.HWC, mTrtParams.worker);
+    return fileData;
+}
 
+// ============== DetectionTRT =====================>
+
+DetectionTRT::DetectionTRT(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams) :
+                TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(detectParams)) {
+
+}
+
+std::vector<float> DetectionTRT::preProcess(const std::vector<cv::Mat> &images) const {
+    return TensorRT::preProcess(images);
+}
+
+float DetectionTRT::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                          cudaStream_t stream) const {
+    return TensorRT::infer(InputDatas, bufferManager, stream);
+}
+
+bool DetectionTRT::initSession(int initOrder) {
+    return TensorRT::initSession(initOrder);
+}
+
+std::vector<common::Bbox> DetectionTRT::predOneImage(const cv::Mat &image, float postThres, float nmsThres) {
+    assert(mInputParams.BatchSize==1);
+    common::BufferManager bufferManager(mCudaEngine, 1);
+
+    Clock<std::chrono::high_resolution_clock > clock_t;
+
+    clock_t.tick();
+    auto preImg = preProcess(std::vector<cv::Mat>{image});
+    clock_t.tock();
+    gLogInfo << "Pre Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+
+    float elapsedTime = this->infer(std::vector<std::vector<float>>{preImg}, bufferManager, nullptr);
+    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
+
+    clock_t.tick();
+    std::vector<common::Bbox> bboxes = postProcess(bufferManager, postThres, nmsThres);
+    clock_t.tock();
+    gLogInfo << "Post Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+
+    this->transform(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes, mInputParams.IsPadding);
+    return bboxes;
+}
+
+void DetectionTRT::transform(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes,
+                          bool is_padding) {
+    if(is_padding){
+        float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw), static_cast<float>(oh) / static_cast<float>(ih));
+        int nh = static_cast<int>(scale * static_cast<float>(ih));
+        int nw = static_cast<int>(scale * static_cast<float>(iw));
+        int dh = (oh - nh) / 2;
+        int dw = (ow - nw) / 2;
+        for (auto &bbox : bboxes){
+            bbox.xmin = (bbox.xmin - dw) / scale;
+            bbox.ymin = (bbox.ymin - dh) / scale;
+            bbox.xmax = (bbox.xmax - dw) / scale;
+            bbox.ymax = (bbox.ymax - dh) / scale;
+        }
+    }else{
+        for (auto &bbox : bboxes){
+            bbox.xmin = bbox.xmin * iw / ow;
+            bbox.ymin = bbox.ymin * ih / oh;
+            bbox.xmax = bbox.xmax * iw / ow;
+            bbox.ymax = bbox.ymax * ih / oh;
+        }
+    }
+}
+
+
+
+Segmentation::Segmentation(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams) :
+        TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(detectParams)) {
+
+}
+
+std::vector<float> Segmentation::preProcess(const std::vector<cv::Mat> &images) const {
+    return TensorRT::preProcess(images);
+}
+
+float Segmentation::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                          cudaStream_t stream) const {
+    return TensorRT::infer(InputDatas, bufferManager, stream);
+}
+
+void Segmentation::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
+    cv::Mat out(ih, iw, CV_8U);
+    if(is_padding) {
+        float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw),
+                               static_cast<float>(oh) / static_cast<float>(ih));
+        int nh = static_cast<int>(scale * static_cast<float>(ih));
+        int nw = static_cast<int>(scale * static_cast<float>(iw));
+        int dh = (oh - nh) / 2;
+        int dw = (ow - nw) / 2;
+        cv::Mat crop_mask = mask(cv::Range(dh, dh + nh), cv::Range(dw, dw + nw));
+        cv::resize(crop_mask, out, out.size());
+    }else{
+        const cv::Mat& crop_mask (mask);
+        cv::resize(crop_mask, out, out.size());
+    }
+    mask = out;
+}
+
+bool Segmentation::initSession(int initOrder) {
+    return TensorRT::initSession(initOrder);
+}
+
+cv::Mat Segmentation::predOneImage(const cv::Mat &image, float postThres) {
+    assert(mInputParams.BatchSize==1);
+    common::BufferManager bufferManager(mCudaEngine, 1);
+    Clock<std::chrono::high_resolution_clock > clock_t;
+    clock_t.tick();
+    auto preImg = preProcess(std::vector<cv::Mat>{image});
+    clock_t.tock();
+    gLogInfo << "Pre Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+    float elapsedTime = this->infer(std::vector<std::vector<float>>{preImg}, bufferManager, nullptr);
+    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
+    clock_t.tick();
+    cv::Mat mask = postProcess(bufferManager, postThres);
+    clock_t.tock();
+    gLogInfo << "Post Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+    this->transform(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, mask, mInputParams.IsPadding);
+    return mask;
+}
 
 

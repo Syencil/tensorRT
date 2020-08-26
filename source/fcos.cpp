@@ -3,20 +3,22 @@
 
 #include "fcos.h"
 
-
-FCOS::FCOS(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams) :
-        TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(detectParams)){
+FCOS::FCOS(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams) :
+        DetectionTRT(std::move(inputParams), std::move(trtParams), std::move(yoloParams)) {
 
 }
 
 std::vector<float> FCOS::preProcess(const std::vector<cv::Mat> &images) const {
-    std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW,
-            mInputParams.IsPadding, mInputParams.pFunction, false);
-    return fileData;
+    return DetectionTRT::preProcess(images);
+}
+
+float FCOS::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                    cudaStream_t stream) const {
+    return DetectionTRT::infer(InputDatas, bufferManager, stream);
 }
 
 std::vector<common::Bbox>
-FCOS::postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres) const {
+FCOS::postProcess(common::BufferManager &bufferManager, float postThres, float nmsThres) {
     assert(mInputParams.BatchSize==1);
     if(postThres<0){
         postThres = mDetectParams.PostThreshold;
@@ -72,34 +74,15 @@ FCOS::postProcess(common::BufferManager &bufferManager, float postThres, float n
     return bboxes_nms;
 }
 
+void FCOS::transform(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Bbox> &bboxes,
+                       bool is_padding) {
+    DetectionTRT::transform(ih, iw, oh, ow, bboxes, is_padding);
+}
+
 bool FCOS::initSession(int initOrder) {
-    return TensorRT::initSession(initOrder);
+    return DetectionTRT::initSession(initOrder);
 }
 
 std::vector<common::Bbox> FCOS::predOneImage(const cv::Mat &image, float postThres, float nmsThres) {
-    assert(mInputParams.BatchSize==1);
-    common::BufferManager bufferManager(mCudaEngine, 1);
-    float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
-    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
-    std::vector<common::Bbox> bboxes = postProcess(bufferManager, postThres, nmsThres);
-    if(mInputParams.IsPadding){
-        this->transformBbox(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, bboxes);
-    }
-    return bboxes;
+    return DetectionTRT::predOneImage(image, postThres, nmsThres);
 }
-
-void FCOS::transformBbox(const int &ih, const int &iw, const int &oh, const int &ow,
-                        std::vector<common::Bbox> &bboxes) {
-    float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw), static_cast<float>(oh) / static_cast<float>(ih));
-    int nh = static_cast<int>(scale * static_cast<float>(ih));
-    int nw = static_cast<int>(scale * static_cast<float>(iw));
-    int dh = (oh - nh) / 2;
-    int dw = (ow - nw) / 2;
-    for (auto &bbox : bboxes){
-        bbox.xmin = (bbox.xmin - dw) / scale;
-        bbox.ymin= (bbox.ymin - dh) / scale;
-        bbox.xmax = (bbox.xmax - dw) / scale;
-        bbox.ymax = (bbox.ymax - dh) / scale;
-    }
-}
-

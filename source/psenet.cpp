@@ -2,24 +2,24 @@
 // Date: 2020/7/1
 
 #include <queue>
-
 #include "psenet.h"
 
-Psenet::Psenet(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams):
-            TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(yoloParams)){
+Psenet::Psenet(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams)
+        : Segmentation(std::move(inputParams), std::move(trtParams), std::move(yoloParams)) {
 
 }
+
 
 std::vector<float> Psenet::preProcess(const std::vector<cv::Mat> &images) const {
-    std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, false, mTrtParams.worker);
-    return fileData;
+    return Segmentation::preProcess(images);
 }
 
-bool Psenet::initSession(int initOrder) {
-    return TensorRT::initSession(initOrder);
+float Psenet::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                      cudaStream_t stream) const {
+    return Segmentation::infer(InputDatas, bufferManager, stream);
 }
 
-std::tuple<cv::Mat, std::map<int, std::vector<cv::Point>>> Psenet::postProcess(common::BufferManager &bufferManager, float postThres) {
+cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThres){
     if (postThres==-1){
         postThres = mDetectParams.PostThreshold;
     }
@@ -114,67 +114,19 @@ std::tuple<cv::Mat, std::map<int, std::vector<cv::Point>>> Psenet::postProcess(c
         std::swap(q, q_next);
     }
     // cv::Mat ===> Bbox
-    return std::make_tuple(label_image, contourMaps);
+    return label_image;
 }
 
-std::tuple<cv::Mat, std::vector<cv::RotatedRect>> Psenet::predOneImage(const cv::Mat &image, float postThres) {
-    assert(mInputParams.BatchSize==1);
-    common::BufferManager bufferManager(mCudaEngine, 1);
-    float elapsedTime = infer(std::vector<std::vector<float>>{preProcess(std::vector<cv::Mat>{image})}, bufferManager);
-    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
-    const auto start_t = std::chrono::high_resolution_clock::now();
-    auto result = postProcess(bufferManager, postThres);
-    const auto end_t = std::chrono::high_resolution_clock::now();
-    cv::Mat mask = std::get<0>(result);
-    auto points = std::get<1>(result);
-    gLogInfo << "Post time is "<< std::chrono::duration<double, std::milli>(end_t-start_t).count()<<"ms" << std::endl;
-    auto RBox = this->point2RBox(points);
-    mask = this->transformBbx(image.rows, image.cols, mInputParams.ImgH, mInputParams.ImgW, mask, RBox, mInputParams.IsPadding);
-    return std::make_tuple(mask, RBox);
+void Psenet::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
+    Segmentation::transform(ih, iw, oh, ow, mask, is_padding);
 }
 
-cv::Mat Psenet::transformBbx(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, std::vector<cv::RotatedRect> &RBox,
-                          bool is_padding) {
-    cv::Mat out(ih, iw, CV_8U);
-    if(is_padding) {
-        float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw),
-                               static_cast<float>(oh) / static_cast<float>(ih));
-        int nh = static_cast<int>(scale * static_cast<float>(ih));
-        int nw = static_cast<int>(scale * static_cast<float>(iw));
-        int dh = (oh - nh) / 2;
-        int dw = (ow - nw) / 2;
-        cv::Mat crop_mask = mask(cv::Range(dh, dh + nh), cv::Range(dw, dw + nw));
-        cv::resize(crop_mask, out, out.size());
-
-        for (auto & rec : RBox){
-            rec.size.width /= scale;
-            rec.size.height /= scale;
-            rec.center.x = (rec.center.x - dw) / scale;
-            rec.center.y = (rec.center.y - dh) / scale;
-        }
-    }else{
-        const cv::Mat& crop_mask (mask);
-        cv::resize(crop_mask, out, out.size());
-        for (auto & rec : RBox){
-            rec.size.width = rec.size.width * iw / ow;
-            rec.size.height = rec.size.height * ih / oh;
-            rec.center.x = rec.center.x * iw / ow;
-            rec.center.y = rec.center.y * ih / oh;
-        }
-    }
-    return out;
+bool Psenet::initSession(int initOrder) {
+    return Segmentation::initSession(initOrder);
 }
 
-std::vector<cv::RotatedRect> Psenet::point2RBox(std::map<int, std::vector<cv::Point>> contoursMaps) {
-    std::vector<cv::RotatedRect>RBox;
-    for (const auto & cnt : contoursMaps){
-        cv::Mat bbox;
-        cv::RotatedRect rect = cv::minAreaRect(cnt.second);
-        RBox.emplace_back(rect);
-    }
-    return RBox;
+cv::Mat Psenet::predOneImage(const cv::Mat &image, float postThres) {
+    return Segmentation::predOneImage(image, postThres);
 }
-
-
 
 
