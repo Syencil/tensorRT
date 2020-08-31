@@ -15,7 +15,7 @@ private:
 
     void postProcessParall(unsigned long start, unsigned long length, float postThres, const float *origin_output, std::vector<common::Bbox> *bboxes);
 
-    void safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox);
+    inline void safePushBack(std::vector<common::Bbox> *bboxes, common::Bbox *bbox);
 
 public:
 

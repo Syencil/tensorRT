@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "Int8Calibrator.h"
 #include "utils.h"
+#include "thread_safety_stl.h"
 
 #include <fstream>
 #include <opencv2/core.hpp>
@@ -26,6 +27,7 @@ protected:
     using UniquePtr = std::unique_ptr<T, common::InferDeleter>;
     std::shared_ptr<nvinfer1::ICudaEngine> mCudaEngine;
     std::shared_ptr<nvinfer1::IExecutionContext> mContext;
+    tss::thread_pool mThreadPool;
     common::InputParams mInputParams;
     common::TrtParams mTrtParams;
     cudaEvent_t start_t, stop_t;

@@ -28,65 +28,147 @@ namespace tss{
     public:
         thread_safety_queue()= default;
 
-        thread_safety_queue(thread_safety_queue const& other);
+        thread_safety_queue(thread_safety_queue const& other){
+            std::lock_guard<std::mutex> lk(other._mutex);
+            c = other.c;
+        }
 
-        bool empty() const;
+        bool empty() const{
+            std::lock_guard<std::mutex> lk(_mutex);
+            return c.empty();
+        }
 
-        void push(const _Tp& _Args);
+        void push(const _Tp& _Args){
+            std::lock_guard<std::mutex> lk(_mutex);
+            c.push_back(_Args);
+            _con_var.notify_one();
+        }
 
-        void push(_Tp&& _Args);
+        void push(_Tp&& _Args){
+            std::lock_guard<std::mutex> lk(_mutex);
+            c.push_back(std::move(_Args));
+            _con_var.notify_one();
+        }
 
         template <typename... _Args>
-        void emplace(_Args&&... __args);
+        void emplace(_Args&&... __args){
+            std::lock_guard<std::mutex> lk(_mutex);
+            c.emplace_back(std::forward<_Args>(__args)...);
+            _con_var.notify_one();
+        }
 
-        void wait_and_pop(_Tp& _Args);
+        void wait_and_pop(_Tp& _Args){
+            std::unique_lock<std::mutex> lk(_mutex);
+            _con_var.wait(lk, [this](){return !c.empty();});
+            _Args = c.front();
+            c.pop_front();
+        }
 
-        std::shared_ptr<_Tp> wait_and_pop();
+        std::shared_ptr<_Tp> wait_and_pop(){
+            std::unique_lock<std::mutex> lk(_mutex);
+            _con_var.wait(lk, [this](){return !c.empty();});
+            std::shared_ptr<_Tp> ptr(std::make_shared<_Tp>(c.front()));
+            c.pop_front();
+            return ptr;
+        }
 
-        bool try_pop(_Tp& _Args);
-
-        std::shared_ptr<_Tp> try_pop();
-    };
-}
-
-namespace tss{
-    class thread_joiner{
-    private:
-        std::vector<std::thread> &_threads;
-    public:
-        explicit thread_joiner(std::vector<std::thread>& threads) : _threads(threads){
-
-        };
-        ~thread_joiner(){
-            for(auto & t : _threads){
-                if(t.joinable()){
-                    t.join();
-                }
+        bool try_pop(_Tp& _Args){
+            std::lock_guard<std::mutex> lk(_mutex);
+            if (c.empty()){
+                return false;
             }
+            _Args = c.front();
+            c.pop_front();
+            return true;
+        }
+
+        std::shared_ptr<_Tp> try_pop(){
+            std::lock_guard<std::mutex> lk(_mutex);
+            if (c.empty()){
+                return std::shared_ptr<_Tp>();
+            }
+            std::shared_ptr<_Tp> ptr(std::make_shared<_Tp>(c.front()));
+            c.pop_front();
+            return ptr;
         }
     };
 }
 
 namespace tss{
+
     class thread_pool{
     private:
-        bool _flag_done; // 不需要atomic
+        bool _flag_done; // 不需要atomic_bool 除非对线程池有严格要求
         std::vector<std::thread> _threads;
-        tss::thread_joiner _joiner;
         thread_safety_queue<std::function<void()>> _work_queue; // 任务队列 我们采用thread的方式所以没有返回值
 
     private:
-        void run();
+        inline void run(){
+            while(!_flag_done){
+                std::function<void()> task;
+                if(_work_queue.try_pop(task)){
+                    task();
+                }else{
+                    std::this_thread::yield(); // 释放当前时间片
+                }
+            }
+        }
 
     public:
-        explicit thread_pool();
+        explicit thread_pool() : _flag_done(false){
+            unsigned int thread_num = std::thread::hardware_concurrency();
+            if (0==thread_num){
+                thread_num = 8;
+                printf("Can not access hardware concurrency num !\n");
+            }
+            try{
+                for (int i = 0; i<thread_num; ++i){
+                    _threads.emplace_back(std::thread(&thread_pool::run, this));
+                }
+            }catch (...){
+                _flag_done = true;
+                throw;
+            }
+            printf("Thread Pool Created! Total num of threads is  %d\n", thread_num);
+        }
 
-        explicit thread_pool(int thread_num);
+        explicit thread_pool(int thread_num) : _flag_done(false){
+            try{
+                for (int i = 0; i<thread_num; ++i){
+                    _threads.emplace_back(std::thread(&thread_pool::run, this));
+                }
+            }catch (...){
+                _flag_done = true;
+                throw;
+            }
+            printf("Thread Pool Created! Total num of threads is  %d\n", thread_num);
+        }
 
-        template <typename _FunctionType>
-        std::future<typename std::result_of<_FunctionType()>::type> submit(_FunctionType function); // 使用typename表示type是类型不是变量
+        template <typename _FunctionType, typename... _Args>
+        std::future<typename std::result_of<_FunctionType(_Args...)>::type> submit(_FunctionType&& function, _Args&&... args){
+            using return_type = typename std::result_of<_FunctionType(_Args...)>::type;
+            auto task = std::make_shared<std::packaged_task<return_type ()>>(
+                        std::bind(std::forward<_FunctionType>(function), std::forward<_Args>(args)...)
+                    );
+            std::future<return_type > res = task->get_future();
+            _work_queue.emplace([task](){(*task)(); });
+            return res;
+        } // 使用typename表示type是类型不是变量
 
-        ~thread_pool();
+        ~thread_pool(){
+            _flag_done = true;
+            for(auto & t : _threads){
+                if(t.joinable()){
+                    t.join();
+                }
+            }
+            printf("Thread pool is closed\n");
+        }
+
+        void shutdown() noexcept {
+            printf("Trying to shut down pool...\n");
+            _flag_done = true;
+        }
 
         thread_pool(const thread_pool &other) = delete;
         thread_pool(thread_pool &other) = delete;

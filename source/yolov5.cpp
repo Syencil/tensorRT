@@ -88,15 +88,15 @@ std::vector<common::Bbox> Yolov5::postProcess(common::BufferManager &bufferManag
         const unsigned long cpu_max_threads = std::thread::hardware_concurrency();
         const unsigned long num_threads = std::min(cpu_max_threads != 0 ? cpu_max_threads : 1, min_threads);
         const unsigned long block_size = height / num_threads;
-        std::vector<std::thread> threads(num_threads - 1);
+        std::vector<std::future<void>> futures (num_threads - 1);
         unsigned long block_start = 0;
-        for (auto &thread : threads) {
-            thread = std::thread(&Yolov5::postProcessParall, this, block_start, block_size, height, width, scale_idx, postThres, origin_output, &bboxes);
+        for (auto &future : futures) {
+            future = mThreadPool.submit(&Yolov5::postProcessParall, this, block_start, block_size, height, width, scale_idx, postThres, origin_output, &bboxes);
             block_start += block_size;
         }
         this->postProcessParall(block_start, height-block_start, height, width, scale_idx, postThres, origin_output, &bboxes);
-        for (auto &thread : threads){
-            thread.join();
+        for (auto &future : futures){
+            future.get();
         }
     }
     std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});

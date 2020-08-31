@@ -1,8 +1,9 @@
 # TensorRT-7 Network Lib
 ## Introduction
 Python ===> Onnx ===> tensorRT ===> .h/.so <br>
-支持多线程进行预处理和后处理。支持FP32，FP16，INT8量化。支持serialize，deserialize <br>
-支持线程池实现。支持infer时GPU和CPU端异步进行实现延迟隐藏 (TODO) <br>
+支持FP32，FP16，INT8量化。支持serialize，deserialize <br>
+基于线程池实现多线程并发encode和decode，提升预处理和后处理的速度<br>
+ (TODO)支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
 
 ## Model Zoo
 |Model|Training git|Infer Time|Total Time|
@@ -196,6 +197,11 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.08.31
+1. 实现线程安全队列
+2. 实现基于线程安全队列的线程池
+3. 将模型decode部分用线程池代替std\:\:thread实现。应用在yolov3，yolov5，retinaface模型上
+4. 抽空把预处理部分也改了，目前遍历的方式不太能cache shot。
 ### 2020.08.26
 1. 整体抽象化，严格按照面向对象将模型剥离出来，提高代码复用率。
 2. Detection类已转换网络：yolov5，yolov3，retinaface，retinanet，fcos

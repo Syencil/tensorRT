@@ -37,7 +37,7 @@ endif()
 
 
 ###############################################
-set(TRT source/tensorrt.cpp source/logger.cpp source/utils.cpp source/utils.cu source/thread_safety_stl.cpp)
+set(TRT source/tensorrt.cpp source/logger.cpp source/utils.cpp source/utils.cu)
 set(INT8 source/Int8Calibrator.cu source/Int8Calibrator.cpp)
 
 set(YOLO3 ${TRT} ${INT8} source/yolov3.cpp)
@@ -79,6 +79,8 @@ target_link_libraries(pse psenettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIB
 
 cuda_add_executable(psev2 psenetv2_main.cpp)
 target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
+
+cuda_add_executable(stl_test stl_test.cpp)
 
 #########################3#####################
 cuda_add_library(yolov3trt SHARED ${YOLO3})
