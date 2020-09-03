@@ -5,7 +5,7 @@
 
 void idxTransformParall(std::vector<unsigned char> *in_file, std::vector<float> *out_file,
                         unsigned long start_h, unsigned long length, unsigned long image_h, unsigned long image_w,
-                        unsigned long start, float (*pFun)(unsigned char&), bool HWC){
+                        unsigned long start, float (*pFun)(const unsigned char&), bool HWC){
     if(HWC){
         // HWC and BRG=>RGB
         for(unsigned long h=start_h; h<start_h+length; ++h){
@@ -34,7 +34,7 @@ void idxTransformParall(std::vector<unsigned char> *in_file, std::vector<float> 
 }
 
 // ==============Pre Process=============>
-std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(unsigned char&), bool HWC, int worker){
+std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(const unsigned char&), bool HWC, int worker){
     // image_path ===> cv::Mat ===> resize(padding) ===> CHW/HWC (BRG=>RGB)
     // 测试发现RGB转BGR的cv::cvtColor 和 HWC 转 CHW非常耗时，故将其合并为一次操作
     const unsigned long image_length = image_h*image_w*3;

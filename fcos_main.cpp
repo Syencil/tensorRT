@@ -11,7 +11,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
     inputParams.OutputTensorNames = std::vector<std::string>{"1077", "1094", "1078", "1107", "1124", "1108", "1137", "1154", "1138", "1167", "1184", "1168", "1197", "1214", "1198"};
-    inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /255;};
+    inputParams.pFunction = [](const unsigned char &x){return static_cast<float>(x) /255;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){

@@ -10,7 +10,7 @@ Retinaface::Retinaface(common::InputParams inputParams, common::TrtParams trtPar
 }
 
 
-std::vector<float> Retinaface::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> Retinaface::preProcess(const std::vector<cv::Mat> &images) {
     return DetectionTRT::preProcess(images);
 }
 

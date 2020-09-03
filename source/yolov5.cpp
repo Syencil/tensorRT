@@ -9,7 +9,7 @@ Yolov5::Yolov5(common::InputParams inputParams, common::TrtParams trtParams, com
 }
 
 
-std::vector<float> Yolov5::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> Yolov5::preProcess(const std::vector<cv::Mat> &images) {
     return DetectionTRT::preProcess(images);
 }
 

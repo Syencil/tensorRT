@@ -12,7 +12,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.HWC = false;
     inputParams.InputTensorNames = std::vector<std::string>{"input.1"};
     inputParams.OutputTensorNames = std::vector<std::string>{"815", "816", "841", "842", "867", "868", "893", "894", "919", "920"};
-    inputParams.pFunction = [](unsigned char &x){return (static_cast<float>(x) -118) / 58;};
+    inputParams.pFunction = [](const unsigned char &x){return (static_cast<float>(x) -118) / 58;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){

@@ -12,7 +12,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.IsPadding = true;
     inputParams.InputTensorNames = std::vector<std::string>{"Placeholder/inputs_x:0"};
     inputParams.OutputTensorNames = std::vector<std::string>{"pred_sbbox/decode:0", "pred_mbbox/decode:0", "pred_lbbox/decode:0"};
-    inputParams.pFunction = [](unsigned char &x){return static_cast<float>(x) /255;};
+    inputParams.pFunction = [](const unsigned char &x){return static_cast<float>(x) /255;};
 }
 
 void initTrtParams(common::TrtParams &trtParams){

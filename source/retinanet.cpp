@@ -9,7 +9,7 @@ RetinaNet::RetinaNet(common::InputParams inputParams, common::TrtParams trtParam
 }
 
 
-std::vector<float> RetinaNet::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> RetinaNet::preProcess(const std::vector<cv::Mat> &images) {
     return DetectionTRT::preProcess(images);
 }
 

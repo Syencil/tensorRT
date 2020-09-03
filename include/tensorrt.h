@@ -32,6 +32,30 @@ protected:
     common::TrtParams mTrtParams;
     cudaEvent_t start_t, stop_t;
 
+private:
+    //! Build the network and construct CudaEngine and Context. It should be called before serializeEngine()
+    //! \param onnxPath Onnx file path.
+    //! \return Return true if no errors happened.
+    bool constructNetwork(const std::string &onnxPath);
+
+    //! Serialize the CudaEngine. It should be called after constructNetwork();
+    //! \param save_path Saved file path
+    //! \return Return true if no errors happened.
+    bool serializeEngine(const std::string &save_path);
+
+    //! Deserialize the CudaEngine.
+    //! \param load_path Saved file path
+    //! \return Return true if no errors happened.
+    bool deseriazeEngine(const std::string &load_path);
+
+    void resize_bilinear_c3_parrall(unsigned char *dst, int w, int block_start, int block_size, int stride, const unsigned char *src, int srcstride, const int *xofs, const int *yofs, const short *ialpha, const short *ibeta);
+
+    void resize_bilinear_c3(const unsigned char *src, int srcw, int srch, unsigned char *dst, int w, int h);
+
+    void pixel_convert_parrall(const unsigned char *src, int h_start, int len, float *dst);
+
+    void pixel_convert(const unsigned char *src, float *dst);
+
 protected:
     //! Initialize mInputParams, mTrtParms
     //! \param inputParams Input images params
@@ -40,23 +64,8 @@ protected:
 
     ~TensorRT();
 
-    //! Build the network and construct CudaEngine and Context. It should be called before serializeEngine()
-    //! \param onnxPath Onnx file path.
-    //! \return Return true if no errors happened.
-    virtual bool constructNetwork(const std::string &onnxPath);
-
-    //! Serialize the CudaEngine. It should be called after constructNetwork();
-    //! \param save_path Saved file path
-    //! \return Return true if no errors happened.
-    virtual bool serializeEngine(const std::string &save_path);
-
-    //! Deserialize the CudaEngine.
-    //! \param load_path Saved file path
-    //! \return Return true if no errors happened.
-    virtual bool deseriazeEngine(const std::string &load_path);
-
     //! PreProcess
-    virtual std::vector<float> preProcess(const std::vector<cv::Mat> &images) const;
+    virtual std::vector<float> preProcess(const std::vector<cv::Mat> &images);
 
     //! (ASynchronously) Execute the inference on a batch.
     //! \param InputDatas Float arrays which must corresponded with InputTensorNames.
@@ -85,7 +94,7 @@ protected:
 protected:
     DetectionTRT(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
-    std::vector<float> preProcess(const std::vector<cv::Mat> &images) const override ;
+    std::vector<float> preProcess(const std::vector<cv::Mat> &images) override ;
 
     float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream) const override ;
 
@@ -109,7 +118,7 @@ protected:
 protected:
     Segmentation(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
-    std::vector<float> preProcess(const std::vector<cv::Mat> &images) const override ;
+    std::vector<float> preProcess(const std::vector<cv::Mat> &images) override ;
 
     float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream) const override ;
 

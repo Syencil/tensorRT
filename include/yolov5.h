@@ -19,7 +19,7 @@ public:
     Yolov5(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams);
 
     //! Read images into buffer
-    std::vector<float> preProcess(const std::vector<cv::Mat> &images) const override;
+    std::vector<float> preProcess(const std::vector<cv::Mat> &images) override;
 
     //! Infer
     float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream=nullptr) const override;

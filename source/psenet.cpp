@@ -10,7 +10,7 @@ Psenet::Psenet(common::InputParams inputParams, common::TrtParams trtParams, com
 }
 
 
-std::vector<float> Psenet::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> Psenet::preProcess(const std::vector<cv::Mat> &images) {
     return Segmentation::preProcess(images);
 }
 

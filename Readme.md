@@ -2,7 +2,8 @@
 ## Introduction
 Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 支持FP32，FP16，INT8量化。支持serialize，deserialize <br>
-基于线程池实现多线程并发encode和decode，提升预处理和后处理的速度<br>
+基于线程池实现多线程并发，提升预处理和后处理的速度<br>
+重写或融合部分Opencv算子，提升Cache使用率以及避免不必要的扫描操作<br>
  (TODO)支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
 
 ## Model Zoo
@@ -197,6 +198,11 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.09.03
+1. 重写opencv的bilinear resize算子
+2. 将cvtColor和HWC2CHW融合为一个
+3. 提升cache的命中率
+4. 开启多线程进行图像预处理，Opencv原始的一套 resize + cvtColor 大概15ms。改写之后 resize + cvtColor + HWC2CHW一共4.8ms
 ### 2020.08.31
 1. 实现线程安全队列
 2. 实现基于线程安全队列的线程池

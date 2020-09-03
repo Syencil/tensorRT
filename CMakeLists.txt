@@ -4,7 +4,7 @@ project(tensorRT)
 set_property(GLOBAL PROPERTY USE_FOLDERS on)
 
 # c++ 11 / 14 / 17
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
 
 # Output
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/bin")
@@ -80,7 +80,8 @@ target_link_libraries(pse psenettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIB
 cuda_add_executable(psev2 psenetv2_main.cpp)
 target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
-cuda_add_executable(stl_test stl_test.cpp)
+add_executable(stl_test stl_test.cpp)
+target_link_libraries(stl_test ${OpenCV_LIBRARIES})
 
 #########################3#####################
 cuda_add_library(yolov3trt SHARED ${YOLO3})

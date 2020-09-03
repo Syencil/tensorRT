@@ -13,7 +13,7 @@ Psenetv2::Psenetv2(common::InputParams inputParams, common::TrtParams trtParams,
 }
 
 
-std::vector<float> Psenetv2::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> Psenetv2::preProcess(const std::vector<cv::Mat> &images) {
     return Segmentation::preProcess(images);
 }
 

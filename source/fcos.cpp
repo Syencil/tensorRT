@@ -8,7 +8,7 @@ FCOS::FCOS(common::InputParams inputParams, common::TrtParams trtParams, common:
 
 }
 
-std::vector<float> FCOS::preProcess(const std::vector<cv::Mat> &images) const {
+std::vector<float> FCOS::preProcess(const std::vector<cv::Mat> &images) {
     return DetectionTRT::preProcess(images);
 }
 
