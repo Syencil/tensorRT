@@ -3,6 +3,7 @@
 
 #include "tensorrt.h"
 #include <climits>
+#include <memory>
 
 
 TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams) : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) {
@@ -540,3 +541,141 @@ cv::Mat Segmentation::predOneImage(const cv::Mat &image, float postThres) {
 }
 
 
+StreamProcess::StreamProcess(DetectionTRT *trt, u_int32_t len) : mTrt(trt), mQ1(len), mQ2(len), mQ3(len), mQ4(len), flag_done(false) {
+
+}
+
+void StreamProcess::preFunc(const char *video_path) {
+    try{
+        cv::VideoCapture capture;
+        cv::Mat frame;
+        frame = capture.open(video_path);
+
+        if(!capture.isOpened()){
+            std::cout << "Video can not be opened! \n";
+            flag_done = true;
+            return;
+        }else{
+            std::cout << "Ori Video path is "<< video_path << std::endl;
+        }
+        while(!flag_done){
+            if(!capture.read(frame)){
+                flag_done = true;
+            }else{
+                auto pre_f = mTrt->preProcess(std::vector<cv::Mat>{frame});
+                while( !mQ1.push(pre_f) && !flag_done){
+                    std::this_thread::yield();
+                }
+                while(!mQ4.push(frame.clone()) && !flag_done){
+                    std::this_thread::yield();
+                }
+            }
+        }
+        capture.release();
+    }catch (std::exception &e){
+        std::cout << "preFunc Exception  ===>\n" << e.what();
+        throw e;
+    }
+
+}
+
+void StreamProcess::inferFunc() {
+    try{
+        while(!flag_done){
+            auto pre_f_p = mQ1.try_pop();
+            if(pre_f_p== nullptr){
+                std::this_thread::yield();
+            }else{
+                std::shared_ptr<common::BufferManager> bufferManager;
+                bufferManager = std::make_shared<common::BufferManager>(mTrt->mCudaEngine, 1);
+                std::vector<std::vector<float>> inputdata {*pre_f_p};
+                mTrt->infer(inputdata, *bufferManager, nullptr);
+                while(!mQ2.push(bufferManager) && !flag_done){
+                    std::this_thread::yield();
+                }
+            }
+        }
+    }catch (std::exception &e){
+        std::cout << "inferFunc Exception  ===> " << e.what();
+        throw e;
+    }
+}
+
+void StreamProcess::postFunc(const char *video_path, int sample_n) {
+    try{
+        int fps = 15;
+        cv::VideoWriter writer;
+        writer.open(video_path, cv::VideoWriter::fourcc('m','p','4','v'), fps, cv::Size(1920, 1080));
+        if(!writer.isOpened()){
+            std::cout << "Writer can not be opened! \n";
+            flag_done = true;
+            return;
+        }
+        std::vector<common::Bbox> bboxes;
+        while(!flag_done){
+            auto post_f_p = mQ2.try_pop();
+            auto img_p = mQ4.try_pop();
+            if(post_f_p == nullptr && img_p == nullptr){
+                std::this_thread::yield();
+            }else{
+                while(post_f_p == nullptr){
+                    post_f_p = mQ2.try_pop();
+                }
+                while(img_p == nullptr){
+                    img_p = mQ4.try_pop();
+                }
+                bboxes = mTrt->postProcess(**post_f_p, mTrt->mDetectParams.PostThreshold,
+                                           mTrt->mDetectParams.NMSThreshold);
+                auto ori_img = *img_p;
+                mTrt->transform(ori_img.rows, ori_img.cols, mTrt->mInputParams.ImgH, mTrt->mInputParams.ImgW, bboxes, mTrt->mInputParams.IsPadding);
+                auto render = renderBoundingBox(ori_img, bboxes);
+                writer.write(render);
+                std::cout << "frame = "<< count++ << std::endl;
+            }
+        }
+        writer.release();
+    }catch (std::exception &e){
+        std::cout << "postFunc Exception  ===>\n" << e.what();
+        throw e;
+    }
+}
+
+void StreamProcess::schedule(int64_t s) {
+    std::this_thread::sleep_for(std::chrono::seconds(s));
+    flag_done = true;
+}
+
+void StreamProcess::print(){
+    while(!flag_done){
+        auto bboxes_p = mQ3.try_pop();
+        if(bboxes_p == nullptr){
+            std::this_thread::yield();
+        }else{
+            ++count;
+            for(const auto & b : **bboxes_p){
+                std::cout << "xmin = " << b.xmin << "  ymin = " << b.ymin << "  xmax = " << b.xmax << "  ymax = " << b.ymax << " score ="<< b.score <<"  cid=" << b.cid << std::endl;
+            }
+        }
+    }
+}
+
+void StreamProcess::run(const char* video_path, const char* render_path) {
+    count = 0;
+    std::cout << "Run the Test"<< std::endl;
+    std::vector<std::thread> threads(3);
+    Clock<std::chrono::high_resolution_clock > tiktock;
+    tiktock.tick();
+    threads[0] = std::thread(&StreamProcess::preFunc, this, video_path);
+    threads[1] = std::thread(&StreamProcess::inferFunc, this);
+    threads[2] = std::thread(&StreamProcess::postFunc, this, render_path, 1);
+//    threads[3] = std::thread(&StreamProcess::schedule, this, 1200);
+//    threads[4] = std::thread(&StreamProcess::print, this);
+
+    for(auto & t : threads){
+        t.join();
+    }
+    tiktock.tock();
+    auto total_time =  tiktock.duration<double>();
+    std::cout << "Stream Process time is " << total_time << "ms   count is " <<count << "  Ave time is "<< total_time / count << std::endl;
+
+}

@@ -87,6 +87,8 @@ protected:
 
 //! TensorRT Detection Base Class
 class DetectionTRT : protected TensorRT{
+private:
+    friend class StreamProcess;
 protected:
     common::DetectParams mDetectParams;
     std::mutex mMutex;
@@ -129,6 +131,34 @@ protected:
     bool initSession(int initOrder) override;
 
     virtual cv::Mat predOneImage(const cv::Mat &image, float postThres);
+
+};
+
+class StreamProcess{
+private:
+    std::atomic_bool flag_done;
+    tss::thread_safety_queue<std::vector<float>> mQ1;
+    tss::thread_safety_queue<std::shared_ptr<common::BufferManager>> mQ2;
+    tss::thread_safety_queue<std::shared_ptr<std::vector<common::Bbox>>> mQ3;
+    tss::thread_safety_queue<cv::Mat> mQ4;
+    DetectionTRT *mTrt;
+
+    int count;
+
+public:
+    explicit StreamProcess(DetectionTRT *trt, u_int32_t len=100);
+
+    void preFunc(const char *video_path);
+
+    void inferFunc();
+
+    void postFunc(const char *video_path, int sample_n);
+
+    void schedule(int64_t s);
+
+    void print();
+
+    void run(const char *video_path, const char *render_path);
 
 };
 

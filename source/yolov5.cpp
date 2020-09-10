@@ -99,13 +99,14 @@ std::vector<common::Bbox> Yolov5::postProcess(common::BufferManager &bufferManag
             future.get();
         }
     }
-    std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
-    std::vector<int> nms_idx = nms(bboxes, nmsThres);
-    std::vector<common::Bbox> bboxes_nms(nms_idx.size());
-    for (int i=0; i<nms_idx.size(); ++i){
-        bboxes_nms[i] = bboxes[nms_idx[i]];
-    }
-    return bboxes_nms;
+//    std::sort(bboxes.begin(), bboxes.end(), [&](common::Bbox b1, common::Bbox b2){return b1.score > b2.score;});
+//    std::vector<int> nms_idx = nms(bboxes, nmsThres);
+//    std::vector<common::Bbox> bboxes_nms(nms_idx.size());
+//    for (int i=0; i<nms_idx.size(); ++i){
+//        bboxes_nms[i] = bboxes[nms_idx[i]];
+//    }
+    nms_cpu(bboxes, nmsThres);
+    return bboxes;
 }
 
 

@@ -6,7 +6,7 @@
 
 #include "tensorrt.h"
 
-class Yolov5 : private DetectionTRT{
+class Yolov5 : public DetectionTRT{
 private:
 
     void postProcessParall(unsigned long start, unsigned long length, unsigned long height, unsigned long width, int scale_idx, float postThres, const float *origin_output, std::vector<common::Bbox> *bboxes);

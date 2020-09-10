@@ -11,6 +11,7 @@
 #include <thread>
 
 #include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <vector>
@@ -28,6 +29,8 @@ std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vect
 //! \param thres
 //! \return keep index
 std::vector<int> nms(std::vector<common::Bbox>, float threshold);
+
+void nms_cpu(std::vector<common::Bbox> &bboxes, float threshold);
 
 void sigmoid(const float *input, float *output, int length, int device_id=0);
 

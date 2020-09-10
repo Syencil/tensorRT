@@ -20,17 +20,28 @@ namespace tss{
     class thread_safety_queue{
     private:
         mutable std::mutex _mutex;
-        std::condition_variable _con_var;
+        std::condition_variable _con_empty;
+        std::condition_variable _cv_full;
+        const u_int32_t _max_size;
 
     protected:
         _Sequence c;
 
     public:
-        thread_safety_queue()= default;
+        thread_safety_queue() : _max_size(UINT32_MAX){
+        }
+
+        explicit thread_safety_queue(size_t size) : _max_size(size){
+        }
 
         thread_safety_queue(thread_safety_queue const& other){
             std::lock_guard<std::mutex> lk(other._mutex);
             c = other.c;
+        }
+
+        size_t size() const{
+            std::lock_guard<std::mutex> lk(_mutex);
+            return c.size();
         }
 
         bool empty() const{
@@ -38,35 +49,47 @@ namespace tss{
             return c.empty();
         }
 
-        void push(const _Tp& _Args){
+        bool push(const _Tp& _Args){
             std::lock_guard<std::mutex> lk(_mutex);
+            if(c.size() >= _max_size){
+                return false;
+            }
             c.push_back(_Args);
-            _con_var.notify_one();
+            _con_empty.notify_one();
+            return true;
         }
 
-        void push(_Tp&& _Args){
+        bool push(_Tp&& _Args){
             std::lock_guard<std::mutex> lk(_mutex);
+            if(c.size()>=_max_size){
+                return false;
+            }
             c.push_back(std::move(_Args));
-            _con_var.notify_one();
+            _con_empty.notify_one();
+            return true;
         }
 
         template <typename... _Args>
-        void emplace(_Args&&... __args){
+        bool emplace(_Args&&... __args){
             std::lock_guard<std::mutex> lk(_mutex);
+            if(c.size()>=_max_size){
+                return false;
+            }
             c.emplace_back(std::forward<_Args>(__args)...);
-            _con_var.notify_one();
+            _con_empty.notify_one();
+            return true;
         }
 
         void wait_and_pop(_Tp& _Args){
             std::unique_lock<std::mutex> lk(_mutex);
-            _con_var.wait(lk, [this](){return !c.empty();});
+            _con_empty.wait(lk, [this](){return !c.empty();});
             _Args = c.front();
             c.pop_front();
         }
 
         std::shared_ptr<_Tp> wait_and_pop(){
             std::unique_lock<std::mutex> lk(_mutex);
-            _con_var.wait(lk, [this](){return !c.empty();});
+            _con_empty.wait(lk, [this](){return !c.empty();});
             std::shared_ptr<_Tp> ptr(std::make_shared<_Tp>(c.front()));
             c.pop_front();
             return ptr;
@@ -98,7 +121,7 @@ namespace tss{
 
     class thread_pool{
     private:
-        bool _flag_done; // 不需要atomic_bool 除非对线程池有严格要求
+        std::atomic_bool _flag_done; // 不一定需要atomic_bool
         std::vector<std::thread> _threads;
         thread_safety_queue<std::function<void()>> _work_queue; // 任务队列 我们采用thread的方式所以没有返回值
 
@@ -115,7 +138,7 @@ namespace tss{
         }
 
     public:
-        explicit thread_pool() : _flag_done(false){
+         thread_pool() : _flag_done(false){
             unsigned int thread_num = std::thread::hardware_concurrency();
             if (0==thread_num){
                 thread_num = 8;

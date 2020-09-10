@@ -80,8 +80,8 @@ target_link_libraries(pse psenettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIB
 cuda_add_executable(psev2 psenetv2_main.cpp)
 target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
-add_executable(stl_test stl_test.cpp)
-target_link_libraries(stl_test ${OpenCV_LIBRARIES})
+cuda_add_executable(stream stream_main.cpp)
+target_link_libraries(stream yolov5trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
 #########################3#####################
 cuda_add_library(yolov3trt SHARED ${YOLO3})

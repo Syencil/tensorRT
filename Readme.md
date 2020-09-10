@@ -4,7 +4,7 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 支持FP32，FP16，INT8量化。支持serialize，deserialize <br>
 基于线程池实现多线程并发，提升预处理和后处理的速度<br>
 重写或融合部分Opencv算子，提升Cache使用率以及避免不必要的扫描操作<br>
- (TODO)支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
+支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
 
 ## Model Zoo
 |Model|Training git|Infer Time|Total Time|
@@ -29,10 +29,12 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 |Onnx|[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)|```python3 -m onnxsim in.onnx out.onnx```|
 ### C++
 ```
-cmake -DCMAKE_BUILD_TYPE=Release . 
-make
-cd bin
-./project_name
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make + project_lib
+make + project_name
+./bin/project_name
 ```
 
 ## Tips
@@ -43,6 +45,12 @@ cd bin
 * * CHW: 对于GPU更优。使用CUDA做infer或者后处理的话，由于硬件DRAM的原因，CHW可以保证线程是以coalescing的方式读取。具体性能对比参考[Programming_Massively_Parallel_Processors](https://github.com/Syencil/Programming_Massively_Parallel_Processors)
 * * HWC: 对于CPU更优。使用CPU进行处理的时候，HWC格式可以保证单个线程处理的数据具有连续的内存地址。而CPU缓存具有[空间局部性](https://zh.wikipedia.org/wiki/CPU%E7%BC%93%E5%AD%98)，这样能极大的提升效率。
 * * 综上：如果后处理使用CPU进行decode，建议在onnx输出HWC格式，如果使用GPU进行decode，建议在onnx输出CHW格式。对于输入端则没有具体测试，主要是相信tensorflow虽然按照之前的HWC格式，但是在操作中肯定也是做了优化
+
+## StreamProcess
+### 简介
+* 位置：stream_main.cpp
+* 此项目为基于yolov5的GPU和CPU端分离之后进行延迟隐藏的简单demo
+* 以对视频进行推理和渲染为基础示例，可以自由更改或重写preFunc和postFunc来实现不同的需求
 
 ## PanNet (PseNet V2)
 ### 简介
@@ -198,6 +206,10 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.09.10
+1. 实现StreamProcess，将CPU和GPU端分离实现延迟隐藏，以yolov5和视频流为demon
+2. 线程安全队列可设置成容量有限的队列（避免爆内存）。同时将push和emplace操作改成try_系列，即可能成功或者失败而不是阻塞。
+3. 增加一个nms_cpu的方式
 ### 2020.09.03
 1. 重写opencv的bilinear resize算子
 2. 将cvtColor和HWC2CHW融合为一个
