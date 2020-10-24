@@ -5,6 +5,7 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 基于线程池实现多线程并发，提升预处理和后处理的速度<br>
 重写或融合部分Opencv算子，提升Cache使用率以及避免不必要的扫描操作<br>
 支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
+支持[剪枝、蒸馏、量化、换轻量级backbone](https://github.com/Syencil/mobile-yolov5-pruning-distillation)<br>
 
 ## Model Zoo
 |Model|Training git|Infer Time|Total Time|
@@ -97,6 +98,7 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 ### 简介
 * 位置：yolov5_main.cpp
 * python训练原版代码git：[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5)
+* 模型压缩加速git：[https://github.com/Syencil/mobile-yolov5-pruning-distillation](https://github.com/Syencil/mobile-yolov5-pruning-distillation)
 ### 注意事项
 * trt的decode针对的是BxHxWxAC的格式（方便按height方向并行化以及其他嵌入式接入）。原版yolov5导出的onnx是BxAxHxWxC，需要在models/yolo.py第28行改为
 ```
