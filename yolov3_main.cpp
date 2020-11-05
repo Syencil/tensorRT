@@ -27,8 +27,8 @@ void initTrtParams(common::TrtParams &trtParams){
     trtParams.AvgTimingIteration = 2;
     trtParams.CalibrationTablePath = "/work/tensorRT-7/data/yoloInt8.calibration";
     trtParams.CalibrationImageDir = "/data/dataset/coco/images/train2017";
-    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/yolo.onnx";
-    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/yolo.serialized";
+    trtParams.OnnxPath = "/work/tensorRT-7/data/onnx/yolov3.onnx";
+    trtParams.SerializedPath = "/work/tensorRT-7/data/onnx/yolov3.serialized";
 }
 
 void initDetectParams(common::DetectParams &yoloParams){

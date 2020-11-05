@@ -11,7 +11,7 @@
 #include "tensorrt.h"
 #include "utils.h"
 
-class Psenet : private Segmentation{
+class Psenet : private SegmentationTRT{
 public:
 
     //! Initializing

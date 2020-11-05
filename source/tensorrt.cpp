@@ -6,7 +6,8 @@
 #include <memory>
 
 
-TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams) : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) {
+TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams)
+                : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) , mThreadPool(16){
     CHECK(cudaEventCreate(&this->start_t));
     CHECK(cudaEventCreate(&this->stop_t));
 }
@@ -484,23 +485,23 @@ void DetectionTRT::transform(const int &ih, const int &iw, const int &oh, const 
     }
 }
 
+// ============== SegmentationTRT =====================>
 
-
-Segmentation::Segmentation(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams) :
+SegmentationTRT::SegmentationTRT(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams) :
         TensorRT(std::move(inputParams), std::move(trtParams)), mDetectParams(std::move(detectParams)) {
 
 }
 
-std::vector<float> Segmentation::preProcess(const std::vector<cv::Mat> &images) {
+std::vector<float> SegmentationTRT::preProcess(const std::vector<cv::Mat> &images) {
     return TensorRT::preProcess(images);
 }
 
-float Segmentation::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
-                          cudaStream_t stream) const {
+float SegmentationTRT::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                             cudaStream_t stream) const {
     return TensorRT::infer(InputDatas, bufferManager, stream);
 }
 
-void Segmentation::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
+void SegmentationTRT::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
     cv::Mat out(ih, iw, CV_8U);
     if(is_padding) {
         float scale = std::min(static_cast<float>(ow) / static_cast<float>(iw),
@@ -518,11 +519,11 @@ void Segmentation::transform(const int &ih, const int &iw, const int &oh, const 
     mask = out;
 }
 
-bool Segmentation::initSession(int initOrder) {
+bool SegmentationTRT::initSession(int initOrder) {
     return TensorRT::initSession(initOrder);
 }
 
-cv::Mat Segmentation::predOneImage(const cv::Mat &image, float postThres) {
+cv::Mat SegmentationTRT::predOneImage(const cv::Mat &image, float postThres) {
     assert(mInputParams.BatchSize==1);
     common::BufferManager bufferManager(mCudaEngine, 1);
     Clock<std::chrono::high_resolution_clock > clock_t;
@@ -540,6 +541,59 @@ cv::Mat Segmentation::predOneImage(const cv::Mat &image, float postThres) {
     return mask;
 }
 
+// ============== KeypointsTRT =====================>
+
+Keypoints::Keypoints(common::InputParams inputParams, common::TrtParams trtParams, common::KeypointParams keypointParams) :
+        TensorRT(std::move(inputParams), std::move(trtParams)), mKeypointParams(std::move(keypointParams)) {
+
+}
+
+std::vector<float> Keypoints::preProcess(const std::vector<cv::Mat> &images) {
+    return TensorRT::preProcess(images);
+}
+
+float Keypoints::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
+                       cudaStream_t stream) const {
+    return TensorRT::infer(InputDatas, bufferManager, stream);
+}
+
+void Keypoints::transform(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Keypoint> &keypoints,
+                          bool is_padding) {
+    assert(!is_padding);
+    for(auto &keypoint : keypoints){
+        keypoint.x *= iw / ow;
+        keypoint.y *= ih / oh;
+    }
+}
+
+bool Keypoints::initSession(int initOrder) {
+    return TensorRT::initSession(initOrder);
+}
+
+std::vector<common::Keypoint> Keypoints::predOneImage(const cv::Mat &image, float postThres) {
+    assert(mInputParams.BatchSize==1);
+    common::BufferManager bufferManager(mCudaEngine, 1);
+
+    Clock<std::chrono::high_resolution_clock > clock_t;
+
+    clock_t.tick();
+    auto preImg = preProcess(std::vector<cv::Mat>{image});
+    clock_t.tock();
+    gLogInfo << "Pre Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+
+    float elapsedTime = this->infer(std::vector<std::vector<float>>{preImg}, bufferManager, nullptr);
+    gLogInfo << "Infer time is "<< elapsedTime << "ms" << std::endl;
+
+    clock_t.tick();
+    std::vector<common::Keypoint> keypoints = postProcess(bufferManager, postThres);
+    clock_t.tock();
+    gLogInfo << "Post Process time is " << clock_t.duration<double>() << "ms"<< std::endl;
+
+    this->transform(image.rows, image.cols, mKeypointParams.HeatMapH, mKeypointParams.HeatMapW, keypoints, mInputParams.IsPadding);
+    return keypoints;
+}
+
+// ============== StreamProcess =====================>
 
 StreamProcess::StreamProcess(DetectionTRT *trt, u_int32_t len) : mTrt(trt), mQ1(len), mQ2(len), mQ3(len), mQ4(len), flag_done(false) {
 

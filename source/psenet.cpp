@@ -5,18 +5,18 @@
 #include "psenet.h"
 
 Psenet::Psenet(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams yoloParams)
-        : Segmentation(std::move(inputParams), std::move(trtParams), std::move(yoloParams)) {
+        : SegmentationTRT(std::move(inputParams), std::move(trtParams), std::move(yoloParams)) {
 
 }
 
 
 std::vector<float> Psenet::preProcess(const std::vector<cv::Mat> &images) {
-    return Segmentation::preProcess(images);
+    return SegmentationTRT::preProcess(images);
 }
 
 float Psenet::infer(const std::vector<std::vector<float>> &InputDatas, common::BufferManager &bufferManager,
                       cudaStream_t stream) const {
-    return Segmentation::infer(InputDatas, bufferManager, stream);
+    return SegmentationTRT::infer(InputDatas, bufferManager, stream);
 }
 
 cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThres){
@@ -118,15 +118,15 @@ cv::Mat Psenet::postProcess(common::BufferManager &bufferManager, float postThre
 }
 
 void Psenet::transform(const int &ih, const int &iw, const int &oh, const int &ow, cv::Mat &mask, bool is_padding) {
-    Segmentation::transform(ih, iw, oh, ow, mask, is_padding);
+    SegmentationTRT::transform(ih, iw, oh, ow, mask, is_padding);
 }
 
 bool Psenet::initSession(int initOrder) {
-    return Segmentation::initSession(initOrder);
+    return SegmentationTRT::initSession(initOrder);
 }
 
 cv::Mat Psenet::predOneImage(const cv::Mat &image, float postThres) {
-    return Segmentation::predOneImage(image, postThres);
+    return SegmentationTRT::predOneImage(image, postThres);
 }
 
 

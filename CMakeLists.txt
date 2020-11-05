@@ -49,6 +49,7 @@ set(RETINAFACE ${TRT} ${INT8} source/retinaface.cpp)
 set(YOLO5 ${TRT} ${INT8} source/yolov5.cpp)
 set(PSENET ${TRT} ${INT8} source/psenet.cpp)
 set(PSENETV2 ${TRT} ${INT8} source/psenetv2.cpp)
+set(SIMPLEPOSE ${TRT} ${INT8} source/simplePose.cpp)
 
 #set(CV_LIB libopencv_core.so libopencv_imgproc.so libopencv_imgcodecs.so) // 主要用到这几个
 set(TRT_LIB libnvinfer.so.7.0.0 libnvonnxparser.so.7.0.0 cuda.so)
@@ -80,6 +81,9 @@ target_link_libraries(pse psenettrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIB
 cuda_add_executable(psev2 psenetv2_main.cpp)
 target_link_libraries(psev2 psenetv2trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
+cuda_add_executable(simplePose simplePose_main.cpp)
+target_link_libraries(simplePose simplePosetrt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
+
 cuda_add_executable(stream stream_main.cpp)
 target_link_libraries(stream yolov5trt.so ${TRT_LIB} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES})
 
@@ -93,4 +97,5 @@ cuda_add_library(retinafacetrt SHARED ${RETINAFACE})
 cuda_add_library(yolov5trt SHARED ${YOLO5})
 cuda_add_library(psenettrt SHARED ${PSENET})
 cuda_add_library(psenetv2trt SHARED ${PSENETV2})
+cuda_add_library(simplePosetrt SHARED ${SIMPLEPOSE})
 

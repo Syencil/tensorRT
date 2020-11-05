@@ -155,7 +155,8 @@ namespace tss{
             printf("Thread Pool Created! Total num of threads is  %d\n", thread_num);
         }
 
-        explicit thread_pool(int thread_num) : _flag_done(false){
+        explicit thread_pool(unsigned int thread_num) : _flag_done(false){
+            thread_num = std::min(std::thread::hardware_concurrency(), thread_num);
             try{
                 for (int i = 0; i<thread_num; ++i){
                     _threads.emplace_back(std::thread(&thread_pool::run, this));

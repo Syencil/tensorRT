@@ -9,6 +9,7 @@ void initInputParams(common::InputParams &inputParams){
     inputParams.ImgC = 3;
     inputParams.BatchSize = 1;
     inputParams.IsPadding = true;
+    inputParams.HWC = true;
     inputParams.InputTensorNames = std::vector<std::string>{"Placeholder/inputs_x:0"};
     inputParams.OutputTensorNames = std::vector<std::string>{"Keypoints/keypoint_1/conv/Sigmoid:0"};
     inputParams.pFunction = [](const unsigned char &x){return static_cast<float>(x) /128-1;};

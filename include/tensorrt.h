@@ -112,13 +112,13 @@ protected:
 
 
 //! TensorRT Segment Base Class
-class Segmentation : protected TensorRT{
+class SegmentationTRT : protected TensorRT{
 protected:
     common::DetectParams mDetectParams;
     std::mutex mMutex;
 
 protected:
-    Segmentation(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
+    SegmentationTRT(common::InputParams inputParams, common::TrtParams trtParams, common::DetectParams detectParams);
 
     std::vector<float> preProcess(const std::vector<cv::Mat> &images) override ;
 
@@ -131,6 +131,27 @@ protected:
     bool initSession(int initOrder) override;
 
     virtual cv::Mat predOneImage(const cv::Mat &image, float postThres);
+
+};
+
+class Keypoints : protected TensorRT{
+protected:
+    common::KeypointParams mKeypointParams;
+public:
+    Keypoints(common::InputParams inputParams, common::TrtParams, common::KeypointParams keypointParams);
+
+    std::vector<float> preProcess(const std::vector<cv::Mat> &images) override ;
+
+    float infer(const std::vector<std::vector<float>>&InputDatas, common::BufferManager &bufferManager, cudaStream_t stream) const override ;
+
+    virtual std::vector<common::Keypoint> postProcess(common::BufferManager &bufferManager, float postThres) = 0;
+
+    virtual void transform(const int &ih, const int &iw, const int &oh, const int &ow, std::vector<common::Keypoint> &points, bool is_padding);
+
+    bool initSession(int initOrder) override;
+
+    virtual std::vector<common::Keypoint> predOneImage(const cv::Mat &image, float postThres=-1);
+
 
 };
 

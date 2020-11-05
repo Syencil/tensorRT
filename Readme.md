@@ -6,19 +6,21 @@ Python ===> Onnx ===> tensorRT ===> .h/.so <br>
 重写或融合部分Opencv算子，提升Cache使用率以及避免不必要的扫描操作<br>
 支持infer时GPU和CPU端异步进行实现延迟隐藏 <br>
 支持[剪枝、蒸馏、量化、换轻量级backbone](https://github.com/Syencil/mobile-yolov5-pruning-distillation)<br>
+推荐搭配[https://github.com/Syencil/mobile-yolov5-pruning-distillation](https://github.com/Syencil/mobile-yolov5-pruning-distillation)使用
 
 ## Model Zoo
 |Model|Training git|Infer Time|Total Time|
 |----|----|----|----|
-|PANNet(Pse++)|[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)<br>[https://github.com/Syencil/PAN.pytorch](https://github.com/Syencil/PAN.pytorch)|18.5ms|45ms|
+|Yolov5x|[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5) <br> [https://github.com/Syencil/mobile-yolov5-pruning-distillation](https://github.com/Syencil/mobile-yolov5-pruning-distillation)|32.5ms|58ms|
+|PANNet(Pse++)|[https://github.com/WenmuZhou/PAN.pytorch](https://github.com/WenmuZhou/PAN.pytorch)|18.5ms|45ms|
 |PSENet|[https://github.com/WenmuZhou/PSENet.pytorch](https://github.com/WenmuZhou/PSENet.pytorch)|22ms|48ms|
-|Yolov5x|[https://github.com/ultralytics/yolov5](https://github.com/ultralytics/yolov5) <br> [https://github.com/Syencil/yolov5](https://github.com/Syencil/yolov5)|32.5ms|58ms|
-|Yolov3|[https://github.com/YunYang1994/tensorflow-yolov3](https://github.com/YunYang1994/tensorflow-yolov3) <br> [https://github.com/Syencil/tensorflow-yolov3][https://github.com/Syencil/tensorflow-yolov3]|14.5ms|29.5ms|
+|Yolov3|[https://github.com/YunYang1994/tensorflow-yolov3](https://github.com/YunYang1994/tensorflow-yolov3)|14.5ms|29.5ms|
 |Retinaface|[https://github.com/biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface) <br> [https://github.com/Syencil/Pytorch_Retinaface](https://github.com/Syencil/Pytorch_Retinaface)|2.3ms|12.3ms|
 |Retinanet|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/nas_fpn/retinanet_r50_fpn_crop640_50e_coco.py)|22.9ms|333ms|
 |Fcos|[mmdetection](https://github.com/open-mmlab/mmdetection) + [configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py](https://github.com/open-mmlab/mmdetection/blob/master/configs/fcos/fcos_r50_caffe_fpn_4x4_1x_coco.py)|-|-|
 |ResNet|-|-|-|
 |Hourglass|[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)|28ms|37ms|
+|SimplePose|[https://github.com/microsoft/human-pose-estimation.pytorch](https://github.com/microsoft/human-pose-estimation.pytorch)|3ms|7ms|
 * 测试环境为Tesla P40 + 4个CPU线程。
 
 ## Quick Start
@@ -40,12 +42,19 @@ make + project_name
 
 ## Tips
 * Onnx必须指定为输入全尺寸，再实际中trt也不存在理想上的动态输入，所以必须在freeze阶段指明输入大小。<br>
-* 构建新项目时，需要继承TensorRT类，只需要实现preProcess，postProcess即可。上层封装为initSession和predOneImage两个方法，方便调用。
+* 构建新项目时，通常只需要需要继承TensorRT类下面的DetectionTRT/SegmentationTRT/KeypointTRT类。只需要实现postProcess就可以用了。上层暴露出来的接口为initSession和predOneImage两个方法，方便调用。
 * 由于ONNX和TRT目前算子实现的比较完善，大多数时候只需要实现相应后处理即可，针对特定算子通常可以再python代码中用一些trick进行替换，实在不行可以考虑自定义plugin
 * 关于CHW和HWC的数据格式
 * * CHW: 对于GPU更优。使用CUDA做infer或者后处理的话，由于硬件DRAM的原因，CHW可以保证线程是以coalescing的方式读取。具体性能对比参考[Programming_Massively_Parallel_Processors](https://github.com/Syencil/Programming_Massively_Parallel_Processors)
 * * HWC: 对于CPU更优。使用CPU进行处理的时候，HWC格式可以保证单个线程处理的数据具有连续的内存地址。而CPU缓存具有[空间局部性](https://zh.wikipedia.org/wiki/CPU%E7%BC%93%E5%AD%98)，这样能极大的提升效率。
 * * 综上：如果后处理使用CPU进行decode，建议在onnx输出HWC格式，如果使用GPU进行decode，建议在onnx输出CHW格式。对于输入端则没有具体测试，主要是相信tensorflow虽然按照之前的HWC格式，但是在操作中肯定也是做了优化
+
+## SimplePose
+### 简介
+* 位置：simplePose_main.cpp
+* python训练代码git：[https://github.com/microsoft/human-pose-estimation.pytorch](https://github.com/microsoft/human-pose-estimation.pytorch)
+### 注意事项
+* 转出onnx之后，在解析onnx时，需要将tmp Cuda的空间设置大一点，不然解析deconv的时候会报错。
 
 ## StreamProcess
 ### 简介
@@ -208,6 +217,9 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2020.11.05
+1. 增加了一个KeypointTRT抽象类。截至目前可完成检测、分割、关键点的"一键"模型转换和部署
+2. 实现微软的SimplePose
 ### 2020.09.10
 1. 实现StreamProcess，将CPU和GPU端分离实现延迟隐藏，以yolov5和视频流为demon
 2. 线程安全队列可设置成容量有限的队列（避免爆内存）。同时将push和emplace操作改成try_系列，即可能成功或者失败而不是阻塞。

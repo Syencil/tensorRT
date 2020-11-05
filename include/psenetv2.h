@@ -10,7 +10,7 @@
 #include "tensorrt.h"
 #include "utils.h"
 
-class Psenetv2 : private Segmentation{
+class Psenetv2 : private SegmentationTRT{
 public:
 
     //! Initializing
