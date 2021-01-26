@@ -49,6 +49,12 @@ make + project_name
 * * HWC: 对于CPU更优。使用CPU进行处理的时候，HWC格式可以保证单个线程处理的数据具有连续的内存地址。而CPU缓存具有[空间局部性](https://zh.wikipedia.org/wiki/CPU%E7%BC%93%E5%AD%98)，这样能极大的提升效率。
 * * 综上：如果后处理使用CPU进行decode，建议在onnx输出HWC格式，如果使用GPU进行decode，建议在onnx输出CHW格式。对于输入端则没有具体测试，主要是相信tensorflow虽然按照之前的HWC格式，但是在操作中肯定也是做了优化
 
+## Darknet
+### 简介
+* 位置：yolov3_darknet_main.cpp
+### 注意事项
+利用[pytorch-yolov4](https://github.com/Tianxiaomo/pytorch-YOLOv4)将darknet模型转换成onnx之后使用
+
 ## SimplePose
 ### 简介
 * 位置：simplePose_main.cpp
@@ -217,6 +223,8 @@ CPU上性能对比结果```100000 times     sigmoid ==> 2.81878ms   fast sigmoid
 * Python训练代码git：[https://github.com/Syencil/Keypoints](https://github.com/Syencil/Keypoints)
 
 ## 更新日志
+### 2021.01.26
+1. 增加darknet的trt版本
 ### 2020.11.05
 1. 增加了一个KeypointTRT抽象类。截至目前可完成检测、分割、关键点的"一键"模型转换和部署
 2. 实现微软的SimplePose
