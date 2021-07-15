@@ -62,6 +62,19 @@ bool TensorRT::constructNetwork(const std::string &onnxPath) {
         }
     }
 
+    if (mTrtParams.useDLA >= 0){
+        if (builder->getNbDLACores() == 0){
+            gLogWarning << "Platform has no DLA Core. It will fall back to gpu" << std::endl;
+        }
+        config->setFlag(nvinfer1::BuilderFlag::kGPU_FALLBACK);
+        if (!config->getFlag(nvinfer1::BuilderFlag::kINT8)){
+            config->setFlag(nvinfer1::BuilderFlag::kFP16);
+        }
+        config->setDefaultDeviceType(nvinfer1::DeviceType::kDLA);
+        config->setDLACore(mTrtParams.useDLA);
+        config->setFlag(nvinfer1::BuilderFlag::kSTRICT_TYPES);
+    }
+
     mCudaEngine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildEngineWithConfig(*network, *config),common::InferDeleter());
     if (!mCudaEngine){
         gLogError << "Create Engine Failed" << std::endl;

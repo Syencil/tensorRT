@@ -24,9 +24,9 @@ namespace common{
     // <============== Params =============>
     struct InputParams {
         // General
+        int ImgC;
         int ImgH;
         int ImgW;
-        int ImgC;
         int BatchSize;
         bool IsPadding;
         bool HWC;
@@ -35,6 +35,9 @@ namespace common{
         std::vector<std::string> OutputTensorNames;
         // Image pre-process function
         float(*pFunction)(const unsigned char&);
+        InputParams() : ImgC(0), ImgH(0), ImgW(0), BatchSize(0), IsPadding(true), HWC(false), InputTensorNames(),
+            OutputTensorNames(), pFunction(nullptr){
+        };
     };
 
     struct TrtParams{
@@ -43,6 +46,7 @@ namespace common{
         bool FP16;
         bool Int32;
         bool Int8;
+        int useDLA;
         int worker;
         int MaxBatch;
         int MinTimingIteration;
@@ -51,11 +55,17 @@ namespace common{
         std::string CalibrationImageDir;
         std::string OnnxPath;
         std::string SerializedPath;
+        TrtParams() : ExtraWorkSpace(0), FP32(true), FP16(false), Int32(false), Int8(false), useDLA(-1), worker(0),
+            MaxBatch(100), MinTimingIteration(1), AvgTimingIteration(2), CalibrationImageDir(), CalibrationTablePath(),
+            OnnxPath(), SerializedPath(){
+        };
     };
 
     struct Anchor{
         float width;
         float height;
+        Anchor() : width(0), height(0){
+        };
     };
 
     struct DetectParams{
@@ -66,6 +76,8 @@ namespace common{
         int NumClass;
         float NMSThreshold;
         float PostThreshold;
+        DetectParams() : Strides(), Anchors(), AnchorPerScale(0), NumClass(0), NMSThreshold(0), PostThreshold(0) {
+        };
     };
 
     struct KeypointParams{
@@ -74,10 +86,14 @@ namespace common{
         int HeatMapW;
         int NumClass;
         float PostThreshold;
+        KeypointParams() : HeatMapH(0), HeatMapW(0), NumClass(0), PostThreshold(0) {
+        };
     };
 
     struct ClassificationParams{
         int NumClass;
+        ClassificationParams() : NumClass(0){
+        };
     };
 
     // <============== Outputs =============>
@@ -88,6 +104,8 @@ namespace common{
         float ymax;
         float score;
         int cid;
+        Bbox() : xmin(0), ymin(0), xmax(0), ymax(0), score(0), cid(0) {
+        };
     };
     
     struct Keypoint{
@@ -95,6 +113,8 @@ namespace common{
         float y;
         float score;
         int cid;
+        Keypoint() : x(0), y(0), score(0), cid(0) {
+        }
     };
 
 

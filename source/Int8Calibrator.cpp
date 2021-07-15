@@ -42,6 +42,10 @@ bool EntropyCalibratorV2::readIntoBuffer() {
     std::vector<cv::Mat> images;
     for(int i=0; i<mInputParams.BatchSize;++i){
         std::string image_path = mFileList[i+mStartPos].first.append("/").append(mFileList[i+mStartPos].second);
+        cv::Mat img = cv::imread(image_path);
+        if (!img.data){
+            gLogError << "Invalid image path " << image_path << std::endl;
+        }
         images.emplace_back(cv::imread(image_path, cv::IMREAD_COLOR));
     }
     std::vector<float>raw_file = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, pFunction);
