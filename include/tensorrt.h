@@ -27,7 +27,7 @@ protected:
     using UniquePtr = std::unique_ptr<T, common::InferDeleter>;
     std::shared_ptr<nvinfer1::ICudaEngine> mCudaEngine;
     std::shared_ptr<nvinfer1::IExecutionContext> mContext;
-    tss::thread_pool mThreadPool;
+    std::shared_ptr<tss::thread_pool> mThreadPool;
     common::InputParams mInputParams;
     common::TrtParams mTrtParams;
     cudaEvent_t start_t, stop_t;

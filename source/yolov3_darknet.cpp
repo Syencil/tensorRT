@@ -53,7 +53,7 @@ std::vector<common::Bbox> Darknet::postProcess(common::BufferManager &bufferMana
     std::vector<std::future<void>> futures (num_threads - 1);
     unsigned long block_start = 0;
     for (auto &future : futures) {
-        future = mThreadPool.submit(&Darknet::postProcessParall, this, block_start, block_size, postThres, bbox_ptr, conf_ptr, &bboxes);
+        future = mThreadPool->submit(&Darknet::postProcessParall, this, block_start, block_size, postThres, bbox_ptr, conf_ptr, &bboxes);
         block_start += block_size;
     }
     this->postProcessParall(block_start, total_num-block_start, postThres, bbox_ptr, conf_ptr, &bboxes);

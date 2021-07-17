@@ -98,7 +98,7 @@ Retinaface::postProcess(common::BufferManager &bufferManager, float postThres, f
         std::vector<std::future<void>> futures(num_threads-1);
         unsigned long block_start = 0;
         for(auto & future : futures){
-            future = mThreadPool.submit(&Retinaface::postProcessParall, this,  block_start, block_size, width, s, pos, loc, conf, land, postThres, &bboxes);
+            future = mThreadPool->submit(&Retinaface::postProcessParall, this,  block_start, block_size, width, s, pos, loc, conf, land, postThres, &bboxes);
             block_start += block_size;
         }
         this->postProcessParall(block_start, height - block_start, width, s, pos, loc, conf, land, postThres, &bboxes);

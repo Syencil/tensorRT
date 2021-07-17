@@ -7,7 +7,7 @@
 
 
 TensorRT::TensorRT(common::InputParams inputParams, common::TrtParams trtParams)
-                : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) , mThreadPool(16){
+                : mInputParams(std::move(inputParams)), mTrtParams(std::move(trtParams)) , mThreadPool(new tss::thread_pool(trtParams.worker)){
     CHECK(cudaEventCreate(&this->start_t));
     CHECK(cudaEventCreate(&this->stop_t));
 }
@@ -279,7 +279,7 @@ void TensorRT::resize_bilinear_c3(const unsigned char *src, int srcw, int srch, 
     std::vector<std::future<void>> futures (num_threads - 1);
     int block_start = 0;
     for (auto &future : futures) {
-        future = mThreadPool.submit(&TensorRT::resize_bilinear_c3_parrall, this, dst, w, block_start, block_size, stride, src, srcstride, xofs, yofs, ialpha, ibeta);
+        future = mThreadPool->submit(&TensorRT::resize_bilinear_c3_parrall, this, dst, w, block_start, block_size, stride, src, srcstride, xofs, yofs, ialpha, ibeta);
         block_start += block_size;
     }
     this->resize_bilinear_c3_parrall(dst, w, block_start, h - block_start, stride, src, srcstride, xofs, yofs, ialpha, ibeta);
@@ -337,7 +337,7 @@ void TensorRT::pixel_convert(const unsigned char *src, float *dst){
     std::vector<std::future<void>> futures (num_threads - 1);
     int block_start = 0;
     for (auto &future : futures) {
-        future = mThreadPool.submit(&TensorRT::pixel_convert_parrall, this, src, block_start, block_size, dst);
+        future = mThreadPool->submit(&TensorRT::pixel_convert_parrall, this, src, block_start, block_size, dst);
         block_start += block_size;
     }
     this->pixel_convert_parrall(src, block_start, mInputParams.ImgH-block_start, dst);

@@ -87,7 +87,7 @@ std::vector<common::Bbox> Yolov3::postProcess(common::BufferManager &bufferManag
         std::vector<std::future<void>> futures(num_threads - 1);
         unsigned long block_start = 0;
         for (auto &future : futures) {
-            future = mThreadPool.submit(&Yolov3::postProcessParall, this, block_start, block_size, postThres, origin_output, &bboxes);
+            future = mThreadPool->submit(&Yolov3::postProcessParall, this, block_start, block_size, postThres, origin_output, &bboxes);
             block_start += block_size;
         }
         this->postProcessParall(block_start, length-block_start, postThres, origin_output, &bboxes);
